@@ -32,32 +32,32 @@ export default function Decks() {
         <h1 className="text-xl font-bold">{t('nav.decks')}</h1>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+          className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
         >
           + {t('deck.create')}
         </button>
       </div>
 
       {showCreate && (
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
           <input
             autoFocus
             placeholder={t('placeholder.deck_name')}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <input
             placeholder={t('placeholder.deck_desc')}
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <div className="flex gap-2">
             <button
               onClick={() => createMut.mutate()}
               disabled={!name.trim() || createMut.isPending}
-              className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
             >
               {t('common.save')}
             </button>
@@ -75,7 +75,7 @@ export default function Decks() {
         {decks?.map((deck) => (
           <div
             key={deck.id}
-            className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800"
+            className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-border"
           >
             <Link to={`/deck/${deck.id}`} className="flex-1 min-w-0">
               <div className="font-medium">{deck.name}</div>
@@ -86,7 +86,7 @@ export default function Decks() {
             <div className="flex gap-2 ml-4">
               <Link
                 to={`/study/${deck.id}`}
-                className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md text-sm hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                className="px-3 py-1 bg-primary-light text-primary-dark rounded-md text-sm hover:bg-primary hover:text-white transition-colors"
               >
                 {t('study.start')}
               </Link>

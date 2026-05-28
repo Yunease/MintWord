@@ -53,7 +53,7 @@ export default function ImportPage() {
         <select
           value={selectedDeck}
           onChange={(e) => setSelectedDeck(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">-- 选择词库 --</option>
           {decks?.map((d) => (
@@ -72,13 +72,13 @@ export default function ImportPage() {
         <button
           onClick={() => importMut.mutate()}
           disabled={!selectedDeck || importMut.isPending}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="w-full px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
         >
           {t('file.select_csv')}
         </button>
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-3">
+      <div className="border-t border-border pt-6 space-y-3">
         <h2 className="font-medium">{t('card.bulk_add')}</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {t('card.bulk_hint')}
@@ -88,7 +88,7 @@ export default function ImportPage() {
           onChange={(e) => setBulkText(e.target.value)}
           rows={8}
           placeholder="abandon,放弃&#10;ability,能力，才能&#10;abnormal,反常的"
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
         />
         <button
           onClick={() => bulkMut.mutate()}

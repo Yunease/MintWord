@@ -3,6 +3,15 @@ import { speakText, speakAi, getSetting, setSetting } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import { open } from '@tauri-apps/plugin-dialog';
 
+type Theme = 'mint' | 'ocean' | 'warm' | 'lavender';
+
+const THEMES: { id: Theme; labelKey: string; color: string }[] = [
+  { id: 'mint', labelKey: 'settings.theme_mint', color: '#10b981' },
+  { id: 'ocean', labelKey: 'settings.theme_ocean', color: '#3b82f6' },
+  { id: 'warm', labelKey: 'settings.theme_warm', color: '#f59e0b' },
+  { id: 'lavender', labelKey: 'settings.theme_lavender', color: '#8b5cf6' },
+];
+
 export default function Settings() {
   const [ttsProvider, setTtsProvider] = useState('openai');
   const [ttsUrl, setTtsUrl] = useState('https://api.openai.com/v1/audio/speech');
@@ -13,6 +22,8 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [bgPath, setBgPath] = useState('');
   const [bgOpacity, setBgOpacity] = useState(0.3);
+  const [theme, setTheme] = useState<Theme>('mint');
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -33,8 +44,23 @@ export default function Settings() {
       if (bg) setBgPath(bg);
       const opacity = await getSetting('background_opacity');
       if (opacity) setBgOpacity(parseFloat(opacity));
+      const savedTheme = await getSetting('theme');
+      if (savedTheme === 'ocean' || savedTheme === 'warm' || savedTheme === 'lavender') {
+        setTheme(savedTheme);
+      }
+      const savedDark = await getSetting('dark_mode');
+      if (savedDark === 'true') {
+        setDarkMode(true);
+      }
     })();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.className = darkMode ? `theme-${theme} dark` : `theme-${theme}`;
+    if (!darkMode) {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme, darkMode]);
 
   async function saveSettings() {
     await setSetting('tts_ai_url', ttsUrl);
@@ -49,6 +75,16 @@ export default function Settings() {
     setLangState(newLang);
     setLang(newLang);
     setSetting('lang', newLang);
+  }
+
+  async function handleThemeChange(newTheme: Theme) {
+    setTheme(newTheme);
+    await setSetting('theme', newTheme);
+  }
+
+  async function handleDarkMode(val: boolean) {
+    setDarkMode(val);
+    await setSetting('dark_mode', val.toString());
   }
 
   async function handleSelectBg() {
@@ -91,7 +127,7 @@ export default function Settings() {
             onClick={() => handleLangChange('zh')}
             className={`px-4 py-2 rounded-lg text-sm transition-colors ${
               lang === 'zh'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary text-white'
                 : 'bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700'
             }`}
           >
@@ -101,7 +137,7 @@ export default function Settings() {
             onClick={() => handleLangChange('en')}
             className={`px-4 py-2 rounded-lg text-sm transition-colors ${
               lang === 'en'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-primary text-white'
                 : 'bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700'
             }`}
           >
@@ -112,13 +148,41 @@ export default function Settings() {
 
       <section className="space-y-4">
         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          {t('settings.theme')}
+        </h2>
+        <div className="flex gap-2">
+          {THEMES.map(({ id, labelKey, color }) => (
+            <button
+              key={id}
+              onClick={() => handleThemeChange(id)}
+              className={`w-10 h-10 rounded-full border-2 transition-all ${
+                theme === id ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent'
+              }`}
+              style={{ backgroundColor: color }}
+              title={t(labelKey)}
+            />
+          ))}
+        </div>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={darkMode}
+            onChange={(e) => handleDarkMode(e.target.checked)}
+            className="w-4 h-4 rounded accent-primary"
+          />
+          <span className="text-sm">{t('settings.dark_mode')}</span>
+        </label>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           {t('settings.background')}
         </h2>
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
           <div className="flex items-center gap-2">
             <button
               onClick={handleSelectBg}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 transition-colors"
+              className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-primary-hover transition-colors"
             >
               {t('settings.background_select')}
             </button>
@@ -144,7 +208,7 @@ export default function Settings() {
                 step="0.05"
                 value={bgOpacity}
                 onChange={(e) => handleOpacityChange(parseFloat(e.target.value))}
-                className="w-full"
+                className="w-full accent-primary"
               />
             </div>
           )}
@@ -161,7 +225,7 @@ export default function Settings() {
           {t('settings.tts')}
         </h2>
 
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium text-sm">{t('settings.tts_system')}</div>
@@ -176,7 +240,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
           <div className="font-medium text-sm mb-2">{t('settings.tts_ai')}</div>
 
           <div>
@@ -184,7 +248,7 @@ export default function Settings() {
             <select
               value={ttsProvider}
               onChange={(e) => setTtsProvider(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="openai">OpenAI</option>
               <option value="azure">Azure OpenAI</option>
@@ -197,7 +261,7 @@ export default function Settings() {
             <input
               value={ttsUrl}
               onChange={(e) => setTtsUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -207,7 +271,7 @@ export default function Settings() {
               type="password"
               value={ttsKey}
               onChange={(e) => setTtsKey(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -217,7 +281,7 @@ export default function Settings() {
               <select
                 value={ttsVoice}
                 onChange={(e) => setTtsVoice(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="alloy">Alloy</option>
                 <option value="echo">Echo</option>
@@ -232,7 +296,7 @@ export default function Settings() {
               <select
                 value={ttsModel}
                 onChange={(e) => setTtsModel(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="tts-1">tts-1</option>
                 <option value="tts-1-hd">tts-1-hd</option>
@@ -243,7 +307,7 @@ export default function Settings() {
           <div className="flex gap-2 pt-1">
             <button
               onClick={saveSettings}
-              className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+              className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
             >
               {t('common.save')}
             </button>
@@ -268,13 +332,13 @@ export default function Settings() {
         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           {t('settings.about')}
         </h2>
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 text-sm text-gray-600 dark:text-gray-400">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 text-sm text-gray-600 dark:text-gray-400">
           {t('settings.about_desc')}
         </div>
       </section>
 
       {saved && (
-        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow-lg">
+        <div className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg">
           {t('toast.saved')}
         </div>
       )}
