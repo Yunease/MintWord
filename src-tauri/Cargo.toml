@@ -1,0 +1,42 @@
+[package]
+name = "mintword"
+version = "0.1.0"
+description = "MintWord - A vocabulary learning app"
+authors = ["you"]
+license = "AGPL-3.0"
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.2", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.2", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+rusqlite = { version = "0.32", features = ["bundled"] }
+csv = "1.3"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+rodio = "0.20"
+dirs = "6"
+rand = "0.8"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Media_SpeechSynthesis",
+    "Foundation",
+    "Foundation_Collections",
+    "Storage_Streams",
+] }
