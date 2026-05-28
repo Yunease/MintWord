@@ -28,7 +28,7 @@ export default function Stats() {
         {items.map((item) => (
           <div
             key={item.label}
-            className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 space-y-3"
+            className="bg-white dark:bg-gray-900 rounded-lg border border-border p-5 space-y-3"
           >
             <div className="text-sm text-gray-500 dark:text-gray-400">{item.label}</div>
             <div className="text-3xl font-bold tabular-nums">{item.value}</div>
@@ -77,7 +77,7 @@ function HeatmapChart({ data }: { data: HeatmapDay[] }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+    <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4">
       <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wide">
         {t('stats.heatmap')}
       </h3>
