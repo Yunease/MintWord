@@ -1,73 +1,93 @@
-# React + TypeScript + Vite
+# MintWord (薄荷词汇)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> [English Version](./doc/README-en.md)
 
-Currently, two official plugins are available:
+**MintWord** 是一款基于 **SM-2 间隔重复算法** 的跨平台词汇学习桌面应用。前端使用 React + TypeScript + Vite，后端使用 Rust (Tauri v2)，数据库使用 SQLite。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 功能特点
 
-## React Compiler
+- **间隔重复** — 基于 SM-2 算法，科学安排复习计划
+- **内置词库** — 预装 8 套国内考试词库（CET-4、CET-6、考研、GRE、TOEFL、IELTS、高考、中考）
+- **自定义词库** — 创建自己的词库，支持手动添加、批量添加
+- **CSV 导入** — 从 CSV 文件导入词汇
+- **语音朗读** — Windows 原生 SAPI5 TTS 及可配置的 AI TTS（兼容 OpenAI 接口）
+- **学习统计** — 复习记录、热力图和学习进度追踪
+- **掌握标记** — 标记已掌握的卡片，自动跳过复习
+- **主题配色** — 4 套主题色（薄荷、海洋、暖阳、薰衣草）+ 深色模式
+- **国际化** — 支持中文和英文界面
+- **快捷键** — 学习时使用键盘快速操作
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 内置词库
 
-## Expanding the ESLint configuration
+| 词库     | 说明                   |
+| -------- | ---------------------- |
+| CET-4    | 大学英语四级           |
+| CET-6    | 大学英语六级           |
+| 考研     | 研究生入学考试         |
+| GRE      | 美国研究生入学考试     |
+| TOEFL    | 托福考试               |
+| IELTS    | 雅思考试               |
+| 高考     | 普通高等学校招生考试   |
+| 中考     | 初中学业水平考试       |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 技术栈
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| 层       | 技术                         |
+| -------- | ---------------------------- |
+| 桌面框架 | [Tauri v2](https://tauri.app/) |
+| 前端     | React 19 + TypeScript + Vite |
+| CSS      | Tailwind CSS v4              |
+| 状态管理 | TanStack React Query         |
+| 路由     | React Router DOM v7          |
+| 后端     | Rust                         |
+| 数据库   | SQLite (rusqlite)            |
+| 间隔重复 | SM-2 (SuperMemo 2)           |
+| TTS（Windows） | Windows.Media.SpeechSynthesis |
+| TTS（AI） | OpenAI 兼容接口 (reqwest)    |
+| 音频播放 | rodio                        |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 快速开始
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 环境要求
+
+- [Node.js](https://nodejs.org/) (v18+)
+- [Rust](https://www.rust-lang.org/) (1.77.2+)
+- [Tauri v2 系统依赖](https://v2.tauri.app/start/prerequisites/)
+
+### 开发模式
+
+```bash
+# 安装前端依赖
+npm install
+
+# 启动开发模式（同时启动 Vite 和 Rust 后端）
+npx tauri dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 构建安装包
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npx tauri build
 ```
+
+### 仅前端
+
+```bash
+npm run dev      # Vite 开发服务器，默认 localhost:5173
+npm run build    # 类型检查 + 构建前端
+npm run lint     # ESLint 检查
+```
+
+## 学习快捷键
+
+| 按键         | 功能         |
+| ------------ | ------------ |
+| Space / Enter | 翻转卡片     |
+| 1            | 忘记         |
+| 2            | 模糊         |
+| 3            | 记得         |
+| M            | 标记已掌握   |
+
+## 许可证
+
+AGPL-3.0
