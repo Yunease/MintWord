@@ -6,10 +6,9 @@ mod tts;
 
 use tauri::Manager;
 
-fn import_bundled_decks(app: &tauri::App) -> Result<(), String> {
-    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let db = db::Database::new(app_dir)?;
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+fn import_bundled_decks(app_dir: &std::path::Path) -> Result<(), String> {
+    let db = db::Database::new(app_dir.to_path_buf())?;
+    let mut conn = db.conn.lock().map_err(|e| e.to_string())?;
 
     let already_imported: i32 = conn
         .query_row("SELECT COUNT(*) FROM decks WHERE id LIKE 'builtin-%'", [], |r| r.get(0))
@@ -40,9 +39,8 @@ fn import_bundled_decks(app: &tauri::App) -> Result<(), String> {
             rusqlite::params![id, name, format!("内置词库 - {}", name), "en", "zh", now, now],
         ).map_err(|e| e.to_string())?;
 
-        importer::import_bundled_csv(&conn, csv_data, &id)?;
+        importer::import_bundled_csv(&mut *conn, csv_data, &id)?;
     }
-
     Ok(())
 }
 
@@ -59,13 +57,16 @@ pub fn run() {
             }
 
             let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-            let database = db::Database::new(app_dir)
+            let database = db::Database::new(app_dir.clone())
                 .expect("Failed to initialize database");
             app.manage(database);
 
-            if let Err(e) = import_bundled_decks(app) {
-                log::error!("Failed to import bundled decks: {}", e);
-            }
+            let import_dir = app_dir.clone();
+            std::thread::spawn(move || {
+                if let Err(e) = import_bundled_decks(&import_dir) {
+                    log::error!("Failed to import bundled decks: {}", e);
+                }
+            });
 
             Ok(())
         })

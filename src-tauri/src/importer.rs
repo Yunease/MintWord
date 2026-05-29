@@ -2,7 +2,7 @@ use rusqlite::Connection;
 use uuid::Uuid;
 use chrono::Utc;
 
-pub fn import_csv(conn: &Connection, deck_id: &str, file_path: &str) -> Result<i32, String> {
+pub fn import_csv(conn: &mut Connection, deck_id: &str, file_path: &str) -> Result<i32, String> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(true)
         .flexible(true)
@@ -28,6 +28,7 @@ pub fn import_csv(conn: &Connection, deck_id: &str, file_path: &str) -> Result<i
         return Err("CSV must have a 'translation' or 'back' column".to_string());
     }
 
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
     let mut count = 0;
 
@@ -47,7 +48,7 @@ pub fn import_csv(conn: &Connection, deck_id: &str, file_path: &str) -> Result<i
             .to_string();
 
         let id = Uuid::new_v4().to_string();
-        conn.execute(
+        tx.execute(
             "INSERT INTO cards (id, deck_id, front, back, phonetic, next_review_at, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             rusqlite::params![id, deck_id, front, back, phonetic, now, now, now],
@@ -56,15 +57,17 @@ pub fn import_csv(conn: &Connection, deck_id: &str, file_path: &str) -> Result<i
         count += 1;
     }
 
-    conn.execute(
+    tx.execute(
         "UPDATE decks SET card_count = (SELECT COUNT(*) FROM cards WHERE deck_id = ?1), updated_at = ?2 WHERE id = ?1",
         rusqlite::params![deck_id, now],
     ).map_err(|e| e.to_string())?;
 
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(count)
 }
 
-pub fn import_bundled_csv(conn: &Connection, csv_data: &str, deck_id: &str) -> Result<i32, String> {
+pub fn import_bundled_csv(conn: &mut Connection, csv_data: &str, deck_id: &str) -> Result<i32, String> {
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(true)
         .flexible(true)
@@ -83,7 +86,7 @@ pub fn import_bundled_csv(conn: &Connection, csv_data: &str, deck_id: &str) -> R
         let back = record.get(2).unwrap_or("").trim().to_string();
 
         let id = Uuid::new_v4().to_string();
-        conn.execute(
+        tx.execute(
             "INSERT INTO cards (id, deck_id, front, back, phonetic, next_review_at, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             rusqlite::params![id, deck_id, front, back, phonetic, now, now, now],
@@ -91,10 +94,11 @@ pub fn import_bundled_csv(conn: &Connection, csv_data: &str, deck_id: &str) -> R
         count += 1;
     }
 
-    conn.execute(
+    tx.execute(
         "UPDATE decks SET card_count = (SELECT COUNT(*) FROM cards WHERE deck_id = ?1), updated_at = ?2 WHERE id = ?1",
         rusqlite::params![deck_id, now],
     ).map_err(|e| e.to_string())?;
 
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(count)
 }
