@@ -2,33 +2,46 @@ import { NavLink } from 'react-router-dom';
 import { t } from '../lib/i18n';
 import { useEffect, useState } from 'react';
 import { getSetting } from '../lib/api';
-import { readFile } from '@tauri-apps/plugin-fs';
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [bgStyle, setBgStyle] = useState<React.CSSProperties>({});
   const [showBg, setShowBg] = useState(false);
   const [bgOpacity, setBgOpacity] = useState(0.3);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let objectUrl: string | null = null;
     (async () => {
-      const bgPath = await getSetting('background_image');
-      const bgOpacitySetting = await getSetting('background_opacity');
+      const [bgPath, bgOpacitySetting, savedDark, savedTheme] = await Promise.all([
+        getSetting('background_image'),
+        getSetting('background_opacity'),
+        getSetting('dark_mode'),
+        getSetting('theme'),
+      ]);
+
+      if (savedDark === 'true') {
+        document.documentElement.classList.add('dark');
+        try { localStorage.setItem('mintword_dark_mode', 'true'); } catch {}
+      } else {
+        document.documentElement.classList.remove('dark');
+        try { localStorage.setItem('mintword_dark_mode', 'false'); } catch {}
+      }
+
+      const theme = savedTheme || 'mint';
+      document.documentElement.className = document.documentElement.className
+        .replace(/theme-\w+/g, '')
+        .trim();
+      document.documentElement.classList.add(`theme-${theme}`);
+      try { localStorage.setItem('mintword_theme', theme); } catch {}
+
       if (bgPath) {
         const opacity = bgOpacitySetting ? parseFloat(bgOpacitySetting) : 0.3;
         setBgOpacity(opacity);
         setShowBg(true);
         try {
-          const bytes = await readFile(bgPath);
-          const ext = bgPath.split('.').pop()?.toLowerCase() || 'png';
-          const mime: Record<string, string> = {
-            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-            gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp',
-          };
-          const blob = new Blob([bytes], { type: mime[ext] || 'image/png' });
-          objectUrl = URL.createObjectURL(blob);
+          const url = convertFileSrc(bgPath);
           setBgStyle({
-            backgroundImage: `url('${objectUrl}')`,
+            backgroundImage: `url('${url}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundAttachment: 'fixed',
@@ -41,14 +54,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         setShowBg(false);
         setBgStyle({});
       }
+
+      setReady(true);
     })();
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col relative" style={bgStyle}>
+      {!ready && (
+        <div className="absolute inset-0 bg-white dark:bg-gray-950 pointer-events-none" />
+      )}
       {showBg && (
         <div className="absolute inset-0 bg-white dark:bg-gray-950 pointer-events-none" style={{ opacity: bgOpacity }} />
       )}

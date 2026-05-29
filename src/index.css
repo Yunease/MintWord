@@ -41,5 +41,10 @@ body {
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-bg, #f9fafb);
+}
+html {
+  background-color: #f9fafb;
+}
+html.dark {
+  background-color: #030712;
 }

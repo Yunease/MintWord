@@ -80,11 +80,13 @@ export default function Settings() {
   async function handleThemeChange(newTheme: Theme) {
     setTheme(newTheme);
     await setSetting('theme', newTheme);
+    try { localStorage.setItem('mintword_theme', newTheme); } catch {}
   }
 
   async function handleDarkMode(val: boolean) {
     setDarkMode(val);
     await setSetting('dark_mode', val.toString());
+    try { localStorage.setItem('mintword_dark_mode', val.toString()); } catch {}
   }
 
   async function handleSelectBg() {

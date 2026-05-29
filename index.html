@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>vocabsprint</title>
+    <title>MintWord</title>
+    <script>
+      (function() {
+        try {
+          var dark = localStorage.getItem('mintword_dark_mode');
+          var theme = localStorage.getItem('mintword_theme');
+          if (dark === 'true') document.documentElement.classList.add('dark');
+          if (theme) document.documentElement.classList.add('theme-' + theme);
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
