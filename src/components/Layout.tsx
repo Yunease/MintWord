@@ -1,20 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import { t } from '../lib/i18n';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { getSetting } from '../lib/api';
-import { convertFileSrc } from '@tauri-apps/api/core';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const [bgStyle, setBgStyle] = useState<React.CSSProperties>({});
-  const [showBg, setShowBg] = useState(false);
-  const [bgOpacity, setBgOpacity] = useState(0.3);
-  const [ready, setReady] = useState(false);
-
   useEffect(() => {
     (async () => {
-      const [bgPath, bgOpacitySetting, savedDark, savedTheme] = await Promise.all([
-        getSetting('background_image'),
-        getSetting('background_opacity'),
+      const [savedDark, savedTheme] = await Promise.all([
         getSetting('dark_mode'),
         getSetting('theme'),
       ]);
@@ -33,41 +25,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         .trim();
       document.documentElement.classList.add(`theme-${theme}`);
       try { localStorage.setItem('mintword_theme', theme); } catch {}
-
-      if (bgPath) {
-        const opacity = bgOpacitySetting ? parseFloat(bgOpacitySetting) : 0.3;
-        setBgOpacity(opacity);
-        setShowBg(true);
-        try {
-          const url = convertFileSrc(bgPath);
-          setBgStyle({
-            backgroundImage: `url('${url}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed',
-          });
-        } catch (e) {
-          console.error('Failed to load background image:', e);
-          setShowBg(false);
-        }
-      } else {
-        setShowBg(false);
-        setBgStyle({});
-      }
-
-      setReady(true);
     })();
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col relative" style={bgStyle}>
-      {!ready && (
-        <div className="absolute inset-0 bg-white dark:bg-gray-950 pointer-events-none" />
-      )}
-      {showBg && (
-        <div className="absolute inset-0 bg-white dark:bg-gray-950 pointer-events-none" style={{ opacity: bgOpacity }} />
-      )}
-      <header className="relative z-10 border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm sticky top-0">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col">
+      <header className="border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           <NavLink to="/" className="text-lg font-bold tracking-tight">
             {t('app.name')}
@@ -95,7 +58,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="relative z-10 flex-1 max-w-4xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">
         {children}
       </main>
     </div>

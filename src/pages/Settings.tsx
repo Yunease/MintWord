@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { speakText, speakAi, getSetting, setSetting } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
-import { open } from '@tauri-apps/plugin-dialog';
 
 type Theme = 'mint' | 'ocean' | 'warm' | 'lavender';
 
@@ -20,8 +19,6 @@ export default function Settings() {
   const [ttsModel, setTtsModel] = useState('tts-1');
   const [lang, setLangState] = useState<Lang>(getLang());
   const [saved, setSaved] = useState(false);
-  const [bgPath, setBgPath] = useState('');
-  const [bgOpacity, setBgOpacity] = useState(0.3);
   const [theme, setTheme] = useState<Theme>('mint');
   const [darkMode, setDarkMode] = useState(false);
 
@@ -40,10 +37,6 @@ export default function Settings() {
         setLangState(savedLang);
         setLang(savedLang);
       }
-      const bg = await getSetting('background_image');
-      if (bg) setBgPath(bg);
-      const opacity = await getSetting('background_opacity');
-      if (opacity) setBgOpacity(parseFloat(opacity));
       const savedTheme = await getSetting('theme');
       if (savedTheme === 'ocean' || savedTheme === 'warm' || savedTheme === 'lavender') {
         setTheme(savedTheme);
@@ -87,33 +80,6 @@ export default function Settings() {
     setDarkMode(val);
     await setSetting('dark_mode', val.toString());
     try { localStorage.setItem('mintword_dark_mode', val.toString()); } catch {}
-  }
-
-  async function handleSelectBg() {
-    try {
-      const selected = await open({
-        multiple: false,
-        filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] }],
-      });
-      if (selected) {
-        setBgPath(selected);
-        await setSetting('background_image', selected);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } catch { /* ignore */ }
-  }
-
-  async function handleClearBg() {
-    setBgPath('');
-    await setSetting('background_image', '');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
-  async function handleOpacityChange(val: number) {
-    setBgOpacity(val);
-    await setSetting('background_opacity', val.toString());
   }
 
   return (
@@ -174,52 +140,6 @@ export default function Settings() {
           />
           <span className="text-sm">{t('settings.dark_mode')}</span>
         </label>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-          {t('settings.background')}
-        </h2>
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSelectBg}
-              className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-primary-hover transition-colors"
-            >
-              {t('settings.background_select')}
-            </button>
-            {bgPath && (
-              <button
-                onClick={handleClearBg}
-                className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 transition-colors"
-              >
-                {t('settings.background_clear')}
-              </button>
-            )}
-          </div>
-          {bgPath && (
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">{bgPath}</div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                {t('settings.background_opacity')}: {Math.round(bgOpacity * 100)}%
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={bgOpacity}
-                onChange={(e) => handleOpacityChange(parseFloat(e.target.value))}
-                className="w-full accent-primary"
-              />
-            </div>
-          )}
-          {!bgPath && (
-            <div className="text-xs text-gray-400 dark:text-gray-600">
-              {t('settings.background_select')}
-            </div>
-          )}
-        </div>
       </section>
 
       <section className="space-y-4">
