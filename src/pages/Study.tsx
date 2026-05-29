@@ -216,7 +216,7 @@ export default function Study() {
               🔊
             </button>
             <div className="text-sm text-gray-400 dark:text-gray-500 mt-4">
-              {t('study.flip')} (Space/Enter)
+              {t('study.flip')}
             </div>
           </div>
         ) : (
@@ -251,32 +251,28 @@ export default function Study() {
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => handleRating(0)}
-              className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg text-sm font-medium transition-colors"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm font-medium transition-colors"
             >
               {t('study.forgot')}
-              <span className="block text-xs opacity-70 mt-0.5">1</span>
             </button>
             <button
               onClick={() => handleRating(1)}
-              className="bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg text-sm font-medium transition-colors"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm font-medium transition-colors"
             >
               {t('study.hazy')}
-              <span className="block text-xs opacity-70 mt-0.5">2</span>
             </button>
             <button
               onClick={() => handleRating(2)}
-              className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg text-sm font-medium transition-colors"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm font-medium transition-colors"
             >
               {t('study.remembered')}
-              <span className="block text-xs opacity-70 mt-0.5">3</span>
             </button>
           </div>
           <button
             onClick={handleMastered}
-            className="w-full py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-            title={t('study.mastered_hint')}
+            className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-medium transition-colors"
           >
-            {t('study.mastered')} (M)
+            {t('study.mastered')}
           </button>
         </>
       )}

@@ -250,6 +250,28 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          {t('settings.shortcuts')}
+        </h2>
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-border divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+          {[
+            { key: t('shortcuts.space_enter'), desc: t('shortcuts.flip_card') },
+            { key: '1', desc: t('shortcuts.forgot') },
+            { key: '2', desc: t('shortcuts.hazy') },
+            { key: '3', desc: t('shortcuts.remembered') },
+            { key: 'M', desc: t('shortcuts.mastered') },
+          ].map(({ key, desc }) => (
+            <div key={key} className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-gray-600 dark:text-gray-400">{desc}</span>
+              <kbd className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-xs font-mono text-gray-600 dark:text-gray-400">
+                {key}
+              </kbd>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
           {t('settings.about')}
