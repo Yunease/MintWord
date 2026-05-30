@@ -66,6 +66,14 @@ pub struct SessionResult {
     pub mastered: bool,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct DeckProgress {
+    pub total_count: i32,
+    pub studied_count: i32,
+    pub mastered_count: i32,
+    pub due_count: i32,
+}
+
 #[tauri::command]
 pub fn get_decks(db: State<Database>) -> Result<Vec<Deck>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
@@ -362,6 +370,38 @@ pub fn get_deck_due_count(db: State<Database>) -> Result<Vec<(String, i32)>, Str
 }
 
 #[tauri::command]
+pub fn get_deck_progress(db: State<Database>, deck_id: String) -> Result<DeckProgress, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+
+    let total_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM cards WHERE deck_id = ?1",
+        rusqlite::params![deck_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    let studied_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM cards WHERE deck_id = ?1 AND (interval > 0 OR mastered = 1)",
+        rusqlite::params![deck_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    let mastered_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM cards WHERE deck_id = ?1 AND mastered = 1",
+        rusqlite::params![deck_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    let due_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM cards WHERE deck_id = ?1 AND next_review_at <= ?2 AND mastered = 0",
+        rusqlite::params![deck_id, now],
+        |row| row.get(0),
+    ).unwrap_or(0);
+
+    Ok(DeckProgress { total_count, studied_count, mastered_count, due_count })
+}
+
+#[tauri::command]
 pub fn submit_review(db: State<Database>, card_id: String, quality: i32) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let (ease_factor, interval, repetitions): (f64, i32, i32) = conn.query_row(
@@ -404,7 +444,7 @@ pub fn get_stats(db: State<Database>) -> Result<ReviewStats, String> {
     ).unwrap_or(0);
 
     let due_today: i32 = conn.query_row(
-        "SELECT COUNT(*) FROM cards WHERE next_review_at <= ?1 AND mastered = 0",
+        "SELECT COUNT(*) FROM cards WHERE next_review_at <= ?1 AND mastered = 0 AND repetitions > 0",
         rusqlite::params![now], |row| row.get(0)
     ).unwrap_or(0);
 
@@ -414,7 +454,7 @@ pub fn get_stats(db: State<Database>) -> Result<ReviewStats, String> {
     ).unwrap_or(0);
 
     let new_today: i32 = conn.query_row(
-        "SELECT COUNT(*) FROM cards WHERE created_at >= ?1",
+        "SELECT COUNT(DISTINCT card_id) FROM review_log WHERE reviewed_at >= ?1 AND card_id NOT IN (SELECT card_id FROM review_log WHERE reviewed_at < ?1)",
         rusqlite::params![today_start], |row| row.get(0)
     ).unwrap_or(0);
 

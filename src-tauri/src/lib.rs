@@ -83,6 +83,7 @@ pub fn run() {
             commands::get_study_cards_available,
             commands::submit_review_simple,
             commands::submit_review,
+            commands::get_deck_progress,
             commands::master_card,
             commands::unmaster_card,
             commands::update_card_notes,

@@ -55,3 +55,10 @@ export interface SessionResult {
   rating: number;
   mastered: boolean;
 }
+
+export interface DeckProgress {
+  total_count: number;
+  studied_count: number;
+  mastered_count: number;
+  due_count: number;
+}

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { getStats, getHeatmapData, getDeckDueCount } from '../lib/api';
+import { getStats, getHeatmapData, getSetting, getDecks } from '../lib/api';
 import { t } from '../lib/i18n';
 import type { HeatmapDay } from '../types';
 
@@ -8,12 +8,20 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { data: stats } = useQuery({ queryKey: ['stats'], queryFn: getStats });
   const { data: heatmap } = useQuery({ queryKey: ['heatmap'], queryFn: getHeatmapData });
-  const { data: dueCounts } = useQuery({ queryKey: ['dueCounts'], queryFn: getDeckDueCount });
+  const { data: currentDeckId } = useQuery({
+    queryKey: ['setting', 'current_deck_id'],
+    queryFn: () => getSetting('current_deck_id'),
+  });
+  const { data: decks } = useQuery({ queryKey: ['decks'], queryFn: getDecks });
 
-  async function handleQuickStart() {
-    if (!dueCounts || dueCounts.length === 0) return;
-    const best = dueCounts.sort((a, b) => b[1] - a[1])[0];
-    navigate(`/study/${best[0]}`);
+  const currentDeck = decks?.find(d => d.id === currentDeckId);
+
+  function handleQuickStart() {
+    if (!currentDeckId) {
+      navigate('/decks');
+    } else {
+      navigate(`/study/${currentDeckId}`);
+    }
   }
 
   return (
@@ -26,13 +34,19 @@ export default function Dashboard() {
         </div>
       )}
 
-      <button
-        onClick={handleQuickStart}
-        disabled={!dueCounts || dueCounts.length === 0}
-        className="shrink-0 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {t('study.start_quick')}
-      </button>
+      <div className="shrink-0 space-y-2">
+        <button
+          onClick={handleQuickStart}
+          className="w-full px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover transition-colors"
+        >
+          {currentDeckId ? t('study.start_quick') : t('deck.select_hint')}
+        </button>
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+          {currentDeck
+            ? currentDeck.name
+            : t('deck.no_current_study')}
+        </div>
+      </div>
 
       <div className="flex-1 min-h-0">
         {heatmap && <HeatmapChart data={heatmap} />}
