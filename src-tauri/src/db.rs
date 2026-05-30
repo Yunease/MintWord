@@ -4,6 +4,7 @@ use std::sync::Mutex;
 
 pub struct Database {
     pub conn: Mutex<Connection>,
+    pub app_dir: PathBuf,
 }
 
 impl Database {
@@ -13,7 +14,7 @@ impl Database {
         let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
         conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
             .map_err(|e| e.to_string())?;
-        let db = Database { conn: Mutex::new(conn) };
+        let db = Database { conn: Mutex::new(conn), app_dir };
         db.migrate()?;
         Ok(db)
     }

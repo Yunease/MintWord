@@ -3,6 +3,8 @@ mod db;
 mod engine;
 mod importer;
 mod tts;
+mod library;
+mod ai;
 
 use tauri::Manager;
 
@@ -97,6 +99,17 @@ pub fn run() {
             commands::speak_ai,
             commands::get_setting,
             commands::set_setting,
+            commands::get_articles,
+            commands::get_article,
+            commands::create_article,
+            commands::delete_article,
+            commands::import_article_txt,
+            commands::generate_questions,
+            commands::save_questions,
+            commands::get_article_questions,
+            commands::test_ai_api,
+            commands::get_ai_prompt,
+            commands::set_ai_prompt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

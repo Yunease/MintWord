@@ -1,0 +1,216 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useParams, Link } from 'react-router-dom';
+import { getArticle, generateQuestions, saveQuestions, getArticleQuestions, getSetting } from '../lib/api';
+import { t } from '../lib/i18n';
+import type { Question } from '../types';
+
+export default function ArticleView() {
+  const { id } = useParams<{ id: string }>();
+  const { data: article, isLoading } = useQuery({
+    queryKey: ['article', id],
+    queryFn: () => getArticle(id!),
+    enabled: !!id,
+  });
+
+  const { data: savedQuestions } = useQuery({
+    queryKey: ['articleQuestions', id],
+    queryFn: () => getArticleQuestions(id!).catch(() => [] as Question[]),
+    enabled: !!id,
+  });
+
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [selections, setSelections] = useState<Record<string, number>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (savedQuestions && savedQuestions.length > 0) {
+      setQuestions(savedQuestions);
+    }
+  }, [savedQuestions]);
+
+  const genMut = useMutation({
+    mutationFn: async () => {
+      setGenerating(true);
+      setError('');
+      const apiUrl = await getSetting('ai_api_url');
+      const apiKey = await getSetting('ai_api_key');
+      const model = await getSetting('ai_model');
+      if (!apiUrl || !apiKey) throw new Error(t('library.config_first'));
+      const qs = await generateQuestions(id!, apiUrl, apiKey, model || 'gpt-4o-mini');
+      await saveQuestions(id!, qs);
+      return qs;
+    },
+    onSuccess: (qs) => {
+      setQuestions(qs);
+      setSelections({});
+      setSubmitted(false);
+      setGenerating(false);
+    },
+    onError: (e) => {
+      setError(e instanceof Error ? e.message : String(e));
+      setGenerating(false);
+    },
+  });
+
+  function handleSelect(qId: string, optIndex: number) {
+    if (submitted) return;
+    setSelections(prev => ({ ...prev, [qId]: optIndex }));
+  }
+
+  function handleSubmit() {
+    setSubmitted(true);
+  }
+
+  function handleRegenerate() {
+    genMut.mutate();
+  }
+
+  if (isLoading) {
+    return <div className="text-center py-16 text-gray-400">Loading...</div>;
+  }
+
+  if (!article) {
+    return (
+      <div className="text-center py-16 space-y-4">
+        <p className="text-gray-400">Article not found</p>
+        <Link to="/library" className="text-primary hover:underline text-sm">{t('library.back')}</Link>
+      </div>
+    );
+  }
+
+  const allAnswered = questions.every(q => selections[q.id] !== undefined);
+  const correctCount = submitted
+    ? questions.filter(q => selections[q.id] === q.answer).length
+    : 0;
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <Link to="/library" className="text-sm text-primary hover:underline inline-block">
+        &larr; {t('library.back')}
+      </Link>
+
+      <div>
+        <h1 className="text-2xl font-bold">{article.title}</h1>
+        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 space-x-2">
+          <span>{article.source === 'txt' ? t('library.source_txt') : t('library.source_paste')}</span>
+          <span>·</span>
+          <span>{new Date(article.created_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-border p-8 whitespace-pre-wrap leading-8 text-base">
+        {article.content}
+      </div>
+
+      <div className="border-t border-border pt-8">
+        <h2 className="text-xl font-bold mb-6">{t('library.ai_section')}</h2>
+
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg p-3 text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        {questions.length > 0 ? (
+          <div className="space-y-8">
+            {questions.map((q, qi) => (
+              <div key={q.id} className="bg-white dark:bg-gray-900 rounded-xl border border-border p-6">
+                <div className="font-semibold text-base mb-4 leading-relaxed">{qi + 1}. {q.question}</div>
+                <div className="space-y-3">
+                  {q.options.map((opt, oi) => {
+                    let className = 'flex items-center gap-3 px-4 py-3 rounded-lg text-base border cursor-pointer transition-colors ';
+                    if (!submitted) {
+                      className += selections[q.id] === oi
+                        ? 'border-primary bg-primary-light/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600';
+                    } else {
+                      if (oi === q.answer) {
+                        className += 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300';
+                      } else if (oi === selections[q.id] && oi !== q.answer) {
+                        className += 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300';
+                      } else {
+                        className += 'border-gray-200 dark:border-gray-700 opacity-60';
+                      }
+                    }
+                    return (
+                      <div
+                        key={oi}
+                        className={className}
+                        onClick={() => handleSelect(q.id, oi)}
+                      >
+                        <input
+                          type="radio"
+                          name={q.id}
+                          checked={selections[q.id] === oi}
+                          onChange={() => handleSelect(q.id, oi)}
+                          disabled={submitted}
+                          className="accent-primary"
+                        />
+                        <span className="font-medium text-gray-500 dark:text-gray-400 shrink-0">
+                          {String.fromCharCode(65 + oi)}.
+                        </span>
+                        <span className="leading-relaxed">{opt}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {submitted && (
+                  <div className="mt-2 text-sm">
+                    {selections[q.id] === q.answer ? (
+                      <span className="text-green-600 dark:text-green-400 font-medium">{t('library.correct')}</span>
+                    ) : (
+                      <span className="text-red-600 dark:text-red-400">
+                        {t('library.wrong')} {String.fromCharCode(65 + q.answer)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {submitted && (
+              <div className="text-center text-lg font-bold">
+                {t('library.score', { correct: correctCount, total: questions.length })}
+              </div>
+            )}
+
+            <div className="flex gap-4 justify-center pt-2">
+              {!submitted ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={!allAnswered}
+                  className="px-8 py-3 bg-primary text-white rounded-lg text-base hover:bg-primary-hover disabled:opacity-50 transition-colors font-medium"
+                >
+                  {t('library.submit')}
+                </button>
+              ) : null}
+              <button
+                onClick={handleRegenerate}
+                disabled={generating}
+                className="px-8 py-3 bg-gray-200 dark:bg-gray-800 rounded-lg text-base hover:bg-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              >
+                {generating ? t('library.generating') : t('library.regenerate')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 space-y-4">
+            <p className="text-gray-400">
+              {t('library.no_questions')}
+            </p>
+            <button
+              onClick={() => genMut.mutate()}
+              disabled={generating}
+              className="px-6 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
+            >
+              {generating ? t('library.generating') : t('library.generate')}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

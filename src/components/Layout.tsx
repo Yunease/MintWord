@@ -36,7 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {t('app.name')}
           </NavLink>
           <nav className="flex gap-1">
-            {(['/', '/decks', '/stats', '/settings'] as const).map((path) => {
+            {(['/', '/decks', '/library', '/stats', '/settings'] as const).map((path) => {
               const key = path === '/' ? 'nav.dashboard' : `nav.${path.slice(1)}`;
               return (
                 <NavLink

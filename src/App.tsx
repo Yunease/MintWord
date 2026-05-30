@@ -8,6 +8,8 @@ import Study from './pages/Study';
 import Stats from './pages/Stats';
 import Settings from './pages/Settings';
 import ImportPage from './pages/Import';
+import Library from './pages/Library';
+import ArticleView from './pages/ArticleView';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +30,8 @@ export default function App() {
             <Route path="/stats" element={<Stats />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/import" element={<ImportPage />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/library/:id" element={<ArticleView />} />
           </Routes>
         </Layout>
       </BrowserRouter>

@@ -1,6 +1,8 @@
 use tauri::State;
 use crate::db::Database;
 use crate::engine;
+use crate::library;
+use crate::ai;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Deck {
@@ -547,6 +549,111 @@ pub fn set_setting(db: State<Database>, key: String, value: String) -> Result<()
         "INSERT INTO settings (key, value) VALUES (?1, ?2)
          ON CONFLICT(key) DO UPDATE SET value = ?2",
         rusqlite::params![key, value],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// === Article Library Commands ===
+
+#[tauri::command]
+pub fn get_articles(db: State<Database>) -> Result<Vec<library::ArticleSummary>, String> {
+    library::list_articles(&db.app_dir)
+}
+
+#[tauri::command]
+pub fn get_article(db: State<Database>, id: String) -> Result<library::Article, String> {
+    library::get_article(&db.app_dir, &id)
+}
+
+#[tauri::command]
+pub fn create_article(db: State<Database>, title: String, content: String, source: String) -> Result<library::Article, String> {
+    library::create_article(&db.app_dir, title, content, source)
+}
+
+#[tauri::command]
+pub fn delete_article(db: State<Database>, id: String) -> Result<(), String> {
+    library::delete_article(&db.app_dir, &id)
+}
+
+#[tauri::command]
+pub fn import_article_txt(db: State<Database>, file_path: String) -> Result<library::Article, String> {
+    library::import_txt(&db.app_dir, &file_path)
+}
+
+// === AI Commands ===
+
+#[tauri::command]
+pub async fn generate_questions(
+    db: State<'_, Database>,
+    article_id: String,
+    api_url: String,
+    api_key: String,
+    model: String,
+) -> Result<Vec<ai::Question>, String> {
+    let article = library::get_article(&db.app_dir, &article_id)?;
+
+    let prompt = get_custom_prompt(&db)?;
+
+    let response = ai::chat_completion(&api_url, &api_key, &model, &prompt, &article.content).await?;
+    ai::parse_questions(&response)
+}
+
+#[tauri::command]
+pub fn save_questions(db: State<Database>, article_id: String, questions: Vec<ai::Question>) -> Result<(), String> {
+    library::save_questions(&db.app_dir, &article_id, questions)
+}
+
+#[tauri::command]
+pub fn get_article_questions(db: State<Database>, article_id: String) -> Result<Vec<ai::Question>, String> {
+    library::get_questions(&db.app_dir, &article_id)
+}
+
+#[tauri::command]
+pub async fn test_ai_api(
+    api_url: String,
+    api_key: String,
+    model: String,
+) -> Result<String, String> {
+    let response = ai::chat_completion(
+        &api_url,
+        &api_key,
+        &model,
+        "You are a helpful assistant.",
+        "Reply with just: OK",
+    ).await?;
+
+    if response.trim().to_uppercase().contains("OK") {
+        Ok("连接成功".to_string())
+    } else {
+        Ok(format!("API 响应正常: {}", response.trim().chars().take(50).collect::<String>()))
+    }
+}
+
+fn get_custom_prompt(db: &State<Database>) -> Result<String, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let result = conn.query_row(
+        "SELECT value FROM settings WHERE key = 'ai_quiz_prompt'",
+        [],
+        |row| row.get::<_, String>(0),
+    );
+    match result {
+        Ok(val) if !val.is_empty() => Ok(val),
+        _ => Ok(ai::DEFAULT_PROMPT.to_string()),
+    }
+}
+
+#[tauri::command]
+pub fn get_ai_prompt(db: State<Database>) -> Result<String, String> {
+    get_custom_prompt(&db)
+}
+
+#[tauri::command]
+pub fn set_ai_prompt(db: State<Database>, prompt: String) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES ('ai_quiz_prompt', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = ?1",
+        rusqlite::params![prompt],
     ).map_err(|e| e.to_string())?;
     Ok(())
 }

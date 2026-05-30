@@ -62,3 +62,27 @@ export interface DeckProgress {
   mastered_count: number;
   due_count: number;
 }
+
+export interface Article {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  created_at: string;
+  questions: Question[] | null;
+}
+
+export interface ArticleSummary {
+  id: string;
+  title: string;
+  source: string;
+  created_at: string;
+  has_questions: boolean;
+}
+
+export interface Question {
+  id: string;
+  question: string;
+  options: string[];
+  answer: number;
+}

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question } from '../types';
 
 export async function getDecks(): Promise<Deck[]> {
   return invoke('get_decks');
@@ -91,4 +91,52 @@ export async function getSetting(key: string): Promise<string | null> {
 
 export async function setSetting(key: string, value: string): Promise<void> {
   return invoke('set_setting', { key, value });
+}
+
+// === Article Library ===
+
+export async function getArticles(): Promise<ArticleSummary[]> {
+  return invoke('get_articles');
+}
+
+export async function getArticle(id: string): Promise<Article> {
+  return invoke('get_article', { id });
+}
+
+export async function createArticle(title: string, content: string, source: string): Promise<Article> {
+  return invoke('create_article', { title, content, source });
+}
+
+export async function deleteArticle(id: string): Promise<void> {
+  return invoke('delete_article', { id });
+}
+
+export async function importArticleTxt(filePath: string): Promise<Article> {
+  return invoke('import_article_txt', { filePath });
+}
+
+// === AI Quiz ===
+
+export async function generateQuestions(articleId: string, apiUrl: string, apiKey: string, model: string): Promise<Question[]> {
+  return invoke('generate_questions', { articleId, apiUrl, apiKey, model });
+}
+
+export async function saveQuestions(articleId: string, questions: Question[]): Promise<void> {
+  return invoke('save_questions', { articleId, questions });
+}
+
+export async function getArticleQuestions(articleId: string): Promise<Question[]> {
+  return invoke('get_article_questions', { articleId });
+}
+
+export async function testAiApi(apiUrl: string, apiKey: string, model: string): Promise<string> {
+  return invoke('test_ai_api', { apiUrl, apiKey, model });
+}
+
+export async function getAiPrompt(): Promise<string> {
+  return invoke('get_ai_prompt');
+}
+
+export async function setAiPrompt(prompt: string): Promise<void> {
+  return invoke('set_ai_prompt', { prompt });
 }
