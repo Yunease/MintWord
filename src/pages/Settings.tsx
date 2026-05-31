@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { speakText, speakAi, getSetting, setSetting, testAiApi, getAiPrompt, setAiPrompt } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
+import Select from '../components/Select';
 
 type Theme = 'mint' | 'ocean' | 'warm' | 'lavender';
 
@@ -49,7 +50,7 @@ export default function Settings() {
       const promptVal = await getAiPrompt();
       if (promptVal) setAiPromptState(promptVal);
       const savedLang = await getSetting('lang');
-      if (savedLang === 'en' || savedLang === 'zh') {
+      if (savedLang === 'en' || savedLang === 'zh' || savedLang === 'zh-TW') {
         setLangState(savedLang);
         setLang(savedLang);
       }
@@ -151,6 +152,16 @@ export default function Settings() {
                   中文
                 </button>
                 <button
+                  onClick={() => handleLangChange('zh-TW')}
+                  className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                    lang === 'zh-TW'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  繁體中文
+                </button>
+                <button
                   onClick={() => handleLangChange('en')}
                   className={`px-4 py-2 rounded-lg text-sm transition-colors ${
                     lang === 'en'
@@ -218,16 +229,16 @@ export default function Settings() {
               <div className="font-medium text-sm mb-2">{t('settings.tts_ai')}</div>
 
               <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('settings.tts_provider')}</label>
-                <select
+                <Select
+                  label={t('settings.tts_provider')}
                   value={ttsProvider}
-                  onChange={(e) => setTtsProvider(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="openai">OpenAI</option>
-                  <option value="azure">Azure OpenAI</option>
-                  <option value="custom">Custom</option>
-                </select>
+                  onChange={setTtsProvider}
+                  options={[
+                    { value: 'openai', label: 'OpenAI' },
+                    { value: 'azure', label: 'Azure OpenAI' },
+                    { value: 'custom', label: 'Custom' },
+                  ]}
+                />
               </div>
 
               <div>
@@ -251,30 +262,30 @@ export default function Settings() {
 
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('settings.tts_voice')}</label>
-                  <select
+                  <Select
+                    label={t('settings.tts_voice')}
                     value={ttsVoice}
-                    onChange={(e) => setTtsVoice(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="alloy">Alloy</option>
-                    <option value="echo">Echo</option>
-                    <option value="fable">Fable</option>
-                    <option value="onyx">Onyx</option>
-                    <option value="nova">Nova</option>
-                    <option value="shimmer">Shimmer</option>
-                  </select>
+                    onChange={setTtsVoice}
+                    options={[
+                      { value: 'alloy', label: 'Alloy' },
+                      { value: 'echo', label: 'Echo' },
+                      { value: 'fable', label: 'Fable' },
+                      { value: 'onyx', label: 'Onyx' },
+                      { value: 'nova', label: 'Nova' },
+                      { value: 'shimmer', label: 'Shimmer' },
+                    ]}
+                  />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('settings.tts_model')}</label>
-                  <select
+                  <Select
+                    label={t('settings.tts_model')}
                     value={ttsModel}
-                    onChange={(e) => setTtsModel(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="tts-1">tts-1</option>
-                    <option value="tts-1-hd">tts-1-hd</option>
-                  </select>
+                    onChange={setTtsModel}
+                    options={[
+                      { value: 'tts-1', label: 'tts-1' },
+                      { value: 'tts-1-hd', label: 'tts-1-hd' },
+                    ]}
+                  />
                 </div>
               </div>
 
