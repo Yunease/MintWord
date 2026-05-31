@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi, exportSessionCsv, getSetting } from '../lib/api';
+import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi, stopTts, exportSessionCsv, getSetting } from '../lib/api';
 import { t } from '../lib/i18n';
 import type { StudyCard, SessionResult } from '../types';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -10,31 +10,18 @@ import PreviewGrid from '../components/PreviewGrid';
 export default function Study() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const [cards, setCards] = useState<StudyCard[]>([]);
-  const [index, setIndex] = useState(0);
+  const [queue, setQueue] = useState<StudyCard[]>([]);
+  const [originalCards, setOriginalCards] = useState<StudyCard[]>([]);
+  const [cardModes, setCardModes] = useState<Record<string, 'recall' | 'dictation'>>({});
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(false);
   const [results, setResults] = useState<SessionResult[]>([]);
   const [notes, setNotes] = useState('');
   const [playedTts, setPlayedTts] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
-  const [modes, setModes] = useState<('recall' | 'dictation')[]>([]);
   const [userInput, setUserInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
-
-  function generateModes(count: number): ('recall' | 'dictation')[] {
-    const half = Math.ceil(count / 2);
-    const ms: ('recall' | 'dictation')[] = [
-      ...Array(half).fill('recall' as const),
-      ...Array(count - half).fill('dictation' as const),
-    ];
-    for (let i = ms.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [ms[i], ms[j]] = [ms[j], ms[i]];
-    }
-    return ms;
-  }
 
   const { data: fetched, isLoading } = useQuery({
     queryKey: ['study', id],
@@ -44,23 +31,47 @@ export default function Study() {
 
   useEffect(() => {
     if (fetched) {
-      setCards(fetched);
-      setModes(generateModes(fetched.length));
-      setIndex(0);
-      setFlipped(false);
-      setDone(fetched.length === 0);
-      setResults([]);
-      setPlayedTts(false);
-      setUserInput('');
+      (async () => {
+        const dictation = await getSetting('dictation_enabled');
+        const allow = dictation !== 'false';
+        const total = fetched.length;
+
+        let modeArray: ('recall' | 'dictation')[];
+        if (!allow) {
+          modeArray = Array(total).fill('recall' as const);
+        } else {
+          const half = Math.ceil(total / 2);
+          modeArray = [
+            ...Array(half).fill('recall' as const),
+            ...Array(total - half).fill('dictation' as const),
+          ];
+          for (let i = modeArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [modeArray[i], modeArray[j]] = [modeArray[j], modeArray[i]];
+          }
+        }
+        const modesMap: Record<string, 'recall' | 'dictation'> = {};
+        fetched.forEach((card, i) => { modesMap[card.id] = modeArray[i]; });
+
+        setQueue([...fetched]);
+        setOriginalCards(fetched);
+        setCardModes(modesMap);
+        setFlipped(false);
+        setDone(total === 0);
+        setResults([]);
+        setPlayedTts(false);
+        setUserInput('');
+      })();
     }
   }, [fetched]);
 
-  const current = cards[index];
+  const current = queue[0];
 
   useEffect(() => {
     setNotes(current?.notes || '');
     setPlayedTts(false);
     setUserInput('');
+    stopTts().catch(() => {});
   }, [current]);
 
   useEffect(() => {
@@ -73,10 +84,16 @@ export default function Study() {
   }, [current, flipped]);
 
   useEffect(() => {
-    if (current && modes[index] === 'dictation' && !flipped) {
+    if (current && cardModes[current.id] === 'dictation' && !flipped) {
       inputRef.current?.focus();
     }
-  }, [current, index, modes, flipped]);
+  }, [current, cardModes, flipped]);
+
+  useEffect(() => {
+    if (queue.length === 0) {
+      setDone(true);
+    }
+  }, [queue]);
 
   async function speakCurrent() {
     if (!current) return;
@@ -103,7 +120,7 @@ export default function Study() {
       await updateCardNotes(current.id, notes);
     }
     setResults(prev => [...prev, { card_id: current.id, front: current.front, back: current.back, rating, mastered }]);
-    advance();
+    advance(rating < 2);
   }, [current, notes]);
 
   const handleMastered = useCallback(async () => {
@@ -115,18 +132,20 @@ export default function Study() {
       await updateCardNotes(current.id, notes);
     }
     setResults(prev => [...prev, { card_id: current.id, front: current.front, back: current.back, rating, mastered }]);
-    advance();
+    advance(false);
   }, [current, notes]);
 
-  function advance() {
-    if (index + 1 >= cards.length) {
-      setDone(true);
-    } else {
-      setIndex(i => i + 1);
-      setFlipped(false);
-      setUserInput('');
-      setPlayedTts(false);
-    }
+  function advance(requeue: boolean) {
+    setQueue(prev => {
+      const next = prev.slice(1);
+      if (requeue && prev[0]) {
+        next.push(prev[0]);
+      }
+      return next;
+    });
+    setFlipped(false);
+    setUserInput('');
+    setPlayedTts(false);
     queryClient.invalidateQueries({ queryKey: ['stats'] });
   }
 
@@ -158,8 +177,8 @@ export default function Study() {
         return;
       }
 
-      if (!flipped) {
-        if (modes[index] === 'recall') {
+      if (!flipped && current) {
+        if (cardModes[current.id] === 'recall') {
           if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
             setFlipped(true);
@@ -174,24 +193,24 @@ export default function Study() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [flipped, done, handleRating, handleMastered, modes, index]);
+  }, [flipped, done, handleRating, handleMastered, cardModes, current]);
 
   if (isLoading) {
     return <div className="text-center py-16 text-gray-400">{t('study.no_cards')}</div>;
   }
 
   if (done && previewMode) {
-    return <PreviewGrid cards={cards} onBack={() => setPreviewMode(false)} />;
+    return <PreviewGrid cards={originalCards} onBack={() => setPreviewMode(false)} />;
   }
 
   if (done) {
-    const masteredCount = results.filter(r => r.mastered).length;
+    const masteredCount = results.filter(r => r.mastered || r.rating >= 2).length;
     return (
       <div className="max-w-lg mx-auto text-center space-y-6">
         <div className="text-4xl">🎉</div>
         <p className="text-xl font-bold">{t('study.session_summary')}</p>
         <p className="text-gray-500 dark:text-gray-400">
-          {t('study.session_stats', { n: results.length, mastered: masteredCount })}
+          {t('study.session_stats', { n: originalCards.length, mastered: masteredCount })}
         </p>
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 max-h-64 overflow-y-auto">
           {results.map((r, i) => (
@@ -251,20 +270,20 @@ export default function Study() {
           &larr; {t('common.back')}
         </Link>
         <span className="text-xs text-primary font-medium">
-          {modes[index] === 'dictation' ? t('study.dictation') : t('study.mode_recall')}
+          {current && cardModes[current.id] === 'dictation' ? t('study.dictation') : t('study.mode_recall')}
         </span>
         <span className="tabular-nums">
-          {index + 1} / {cards.length}
+          {originalCards.length - queue.length + 1} / {originalCards.length}
         </span>
       </div>
 
       <div
         onClick={() => {
-          if (modes[index] === 'recall' && !flipped) setFlipped(true);
+          if (current && cardModes[current.id] === 'recall' && !flipped) setFlipped(true);
         }}
         className="cursor-pointer min-h-[280px] bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-center p-8 select-none"
       >
-        {modes[index] === 'dictation' && !flipped ? (
+        {current && cardModes[current.id] === 'dictation' && !flipped ? (
           <div className="w-full space-y-5">
             <div className="text-center space-y-3">
               <div className="text-xs text-primary font-medium">{t('study.dictation')}</div>
@@ -295,7 +314,7 @@ export default function Study() {
               {t('study.dictation_hint')}
             </div>
           </div>
-        ) : modes[index] === 'dictation' && flipped ? (
+        ) : current && cardModes[current.id] === 'dictation' && flipped ? (
           <div className="w-full space-y-4">
             <div className="text-center">
               <div className="text-xs text-primary font-medium mb-2">{t('study.dictation')}</div>

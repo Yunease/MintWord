@@ -85,6 +85,10 @@ export async function speakAi(text: string, apiUrl: string, apiKey: string, voic
   return invoke('speak_ai', { text, apiUrl, apiKey, voice, model });
 }
 
+export async function stopTts(): Promise<void> {
+  return invoke('stop_tts');
+}
+
 export async function getSetting(key: string): Promise<string | null> {
   return invoke('get_setting', { key });
 }

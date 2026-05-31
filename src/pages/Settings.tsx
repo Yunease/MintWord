@@ -21,6 +21,7 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [theme, setTheme] = useState<Theme>('mint');
   const [darkMode, setDarkMode] = useState(false);
+  const [dictationEnabled, setDictationEnabled] = useState(true);
 
   const [aiUrl, setAiUrl] = useState('');
   const [aiKey, setAiKey] = useState('');
@@ -59,6 +60,10 @@ export default function Settings() {
       const savedDark = await getSetting('dark_mode');
       if (savedDark === 'true') {
         setDarkMode(true);
+      }
+      const savedDictation = await getSetting('dictation_enabled');
+      if (savedDictation === 'false') {
+        setDictationEnabled(false);
       }
     })();
   }, []);
@@ -99,6 +104,7 @@ export default function Settings() {
 
   const sections = [
     { id: 'general', label: t('settings.language') },
+    { id: 'learning', label: t('settings.learning_mode') },
     { id: 'tts', label: t('settings.tts') },
     { id: 'ai', label: t('settings.ai') },
     { id: 'shortcuts', label: t('settings.shortcuts') },
@@ -415,6 +421,32 @@ export default function Settings() {
               >
                 {t('common.save')}
               </button>
+            </div>
+          </section>
+        )}
+
+        {activeSection === 'learning' && (
+          <section className="space-y-4">
+            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              {t('settings.learning_mode')}
+            </h2>
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <div className="text-sm font-medium">{t('settings.dictation_enabled')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.dictation_enabled_desc')}</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={dictationEnabled}
+                  onChange={async (e) => {
+                    const val = e.target.checked;
+                    setDictationEnabled(val);
+                    await setSetting('dictation_enabled', val.toString());
+                  }}
+                  className="w-4 h-4 rounded accent-primary"
+                />
+              </label>
             </div>
           </section>
         )}

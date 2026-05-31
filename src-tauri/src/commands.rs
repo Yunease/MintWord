@@ -518,13 +518,20 @@ pub fn bulk_add_cards(db: State<Database>, deck_id: String, text: String) -> Res
 
 #[tauri::command]
 pub fn speak_text(text: String) -> Result<(), String> {
-    let engine = crate::tts::TtsEngine::new();
-    engine.speak(&text)
+    crate::tts::speak_text_bg(text);
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn speak_ai(text: String, api_url: String, api_key: String, voice: String, model: String) -> Result<(), String> {
-    crate::tts::ai_tts_speak(&text, &api_url, &api_key, &voice, &model).await
+    crate::tts::speak_ai_bg(text, api_url, api_key, voice, model);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn stop_tts() -> Result<(), String> {
+    crate::tts::stop_audio();
+    Ok(())
 }
 
 #[tauri::command]

@@ -97,6 +97,7 @@ pub fn run() {
             commands::bulk_add_cards,
             commands::speak_text,
             commands::speak_ai,
+            commands::stop_tts,
             commands::get_setting,
             commands::set_setting,
             commands::get_articles,
