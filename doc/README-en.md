@@ -8,7 +8,7 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 - **Built-in Decks** — 8 Chinese exam vocabulary decks (CET-4, CET-6, TOEFL, IELTS, GRE, 考研, 高考, 中考)
 - **Custom Decks** — Create your own decks and add words manually or in bulk
 - **CSV Import** — Import vocabulary from CSV files
-- **Text-to-Speech** — Windows native SAPI5 TTS + configurable AI TTS (OpenAI-compatible API)
+- **Text-to-Speech** — Windows / macOS system TTS + configurable AI TTS (OpenAI-compatible API)
 - **Study Statistics** — Review history, heatmap activity, and learning progress
 - **Mastered Cards** — Mark cards as mastered to exclude them from reviews
 - **Theming** — 4 color themes (Mint, Ocean, Warm, Lavender) + dark mode
@@ -40,7 +40,7 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 | Backend | Rust |
 | Database | SQLite (rusqlite) |
 | Spaced Repetition | SM-2 (SuperMemo 2) |
-| TTS (Windows) | Windows.Media.SpeechSynthesis |
+| TTS (System) | Windows.Media.SpeechSynthesis / macOS `say` |
 | TTS (AI) | OpenAI-compatible API via reqwest |
 | Audio Playback | rodio |
 
@@ -68,6 +68,16 @@ npx tauri dev
 # Build a production installer/bundle
 npx tauri build
 ```
+
+### Release macOS Bundles
+
+Push an `app-v*` tag (for example, `app-v0.2.0`) or manually run the
+`Release macOS` GitHub Actions workflow. It uploads `.dmg` and `.app` bundles
+for both Apple Silicon (`arm64`) and Intel (`x64`) Macs to a GitHub Release.
+
+The default bundle uses ad-hoc signing. Without an Apple Developer certificate,
+users may need to allow the downloaded app in macOS Privacy & Security settings
+when opening it for the first time.
 
 ### Frontend-only
 

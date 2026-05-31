@@ -1,6 +1,11 @@
 use std::io::Cursor;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
+
+#[cfg(target_os = "macos")]
+use std::process::{Child, Command};
+#[cfg(target_os = "macos")]
+use std::time::Duration;
 
 struct AudioPlayer {
     _stream: rodio::OutputStream,
@@ -11,11 +16,13 @@ unsafe impl Send for AudioPlayer {}
 
 static AUDIO_PLAYER: Mutex<Option<AudioPlayer>> = Mutex::new(None);
 static TTS_GEN: AtomicU64 = AtomicU64::new(0);
+#[cfg(target_os = "macos")]
+static MACOS_SAY_CHILD: Mutex<Option<(u64, Child)>> = Mutex::new(None);
 
 pub fn speak_text_bg(text: String) {
     let gen = TTS_GEN.fetch_add(1, Ordering::Relaxed) + 1;
     std::thread::spawn(move || {
-        if let Err(e) = do_windows_tts(&text, gen) {
+        if let Err(e) = do_system_tts(&text, gen) {
             log::error!("TTS synthesis error: {}", e);
         }
     });
@@ -36,10 +43,13 @@ pub fn stop_audio() {
     if let Some(player) = guard.as_ref() {
         player.sink.stop();
     }
+
+    #[cfg(target_os = "macos")]
+    stop_macos_say();
 }
 
 #[cfg(windows)]
-fn do_windows_tts(text: &str, gen: u64) -> Result<(), String> {
+fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
     use windows::Media::SpeechSynthesis::SpeechSynthesizer;
     use windows::Storage::Streams::DataReader;
 
@@ -86,9 +96,69 @@ fn do_windows_tts(text: &str, gen: u64) -> Result<(), String> {
     play_audio_with_gen(&audio_data, gen)
 }
 
-#[cfg(not(windows))]
-fn do_windows_tts(_text: &str, _gen: u64) -> Result<(), String> {
+#[cfg(target_os = "macos")]
+fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
+    if TTS_GEN.load(Ordering::Relaxed) != gen {
+        return Ok(());
+    }
+
+    let mut child_guard = MACOS_SAY_CHILD.lock().map_err(|e| e.to_string())?;
+    stop_macos_say_locked(&mut child_guard);
+
+    let child = Command::new("/usr/bin/say")
+        .arg("--")
+        .arg(text)
+        .spawn()
+        .map_err(|e| format!("Failed to start macOS say: {}", e))?;
+    *child_guard = Some((gen, child));
+    drop(child_guard);
+
+    loop {
+        std::thread::sleep(Duration::from_millis(50));
+        let mut child_guard = MACOS_SAY_CHILD.lock().map_err(|e| e.to_string())?;
+        let Some((active_gen, child)) = child_guard.as_mut() else {
+            return Ok(());
+        };
+
+        if *active_gen != gen {
+            return Ok(());
+        }
+
+        if TTS_GEN.load(Ordering::Relaxed) != gen {
+            stop_macos_say_locked(&mut child_guard);
+            return Ok(());
+        }
+
+        if child
+            .try_wait()
+            .map_err(|e| format!("Failed to wait for macOS say: {}", e))?
+            .is_some()
+        {
+            *child_guard = None;
+            return Ok(());
+        }
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn do_system_tts(_text: &str, _gen: u64) -> Result<(), String> {
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn stop_macos_say() {
+    let Ok(mut child_guard) = MACOS_SAY_CHILD.lock() else {
+        return;
+    };
+    stop_macos_say_locked(&mut child_guard);
+}
+
+#[cfg(target_os = "macos")]
+fn stop_macos_say_locked(child_guard: &mut Option<(u64, Child)>) {
+    if let Some((_, mut child)) = child_guard.take() {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
 }
 
 async fn do_ai_tts(

@@ -10,7 +10,7 @@
 - **内置词库** — 预装 8 套国内考试词库（CET-4、CET-6、考研、GRE、TOEFL、IELTS、高考、中考）
 - **自定义词库** — 创建自己的词库，支持手动添加、批量添加
 - **CSV 导入** — 从 CSV 文件导入词汇
-- **语音朗读** — Windows 原生 SAPI5 TTS 及可配置的 AI TTS（兼容 OpenAI 接口）
+- **语音朗读** — Windows / macOS 系统 TTS 及可配置的 AI TTS（兼容 OpenAI 接口）
 - **学习统计** — 复习记录、热力图和学习进度追踪
 - **掌握标记** — 标记已掌握的卡片，自动跳过复习
 - **主题配色** — 4 套主题色（薄荷、海洋、暖阳、薰衣草）+ 深色模式
@@ -42,7 +42,7 @@
 | 后端     | Rust                         |
 | 数据库   | SQLite (rusqlite)            |
 | 间隔重复 | SM-2 (SuperMemo 2)           |
-| TTS（Windows） | Windows.Media.SpeechSynthesis |
+| TTS（系统） | Windows.Media.SpeechSynthesis / macOS `say` |
 | TTS（AI） | OpenAI 兼容接口 (reqwest)    |
 | 音频播放 | rodio                        |
 
@@ -69,6 +69,15 @@ npx tauri dev
 ```bash
 npx tauri build
 ```
+
+### 发布 macOS 安装包
+
+推送 `app-v*` 标签（例如 `app-v0.2.0`），或在 GitHub Actions 中手动运行
+`Release macOS` 工作流。工作流会将 Apple Silicon (`arm64`) 和 Intel (`x64`)
+版本的 `.dmg` 与 `.app` 上传到 GitHub Release。
+
+默认使用 ad-hoc 签名。未配置 Apple Developer 证书时，首次打开下载的应用可能需要
+在 macOS 的“隐私与安全性”设置中手动允许。
 
 ### 仅前端
 

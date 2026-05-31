@@ -89,6 +89,10 @@ export async function stopTts(): Promise<void> {
   return invoke('stop_tts');
 }
 
+export async function getPlatform(): Promise<string> {
+  return invoke('get_platform');
+}
+
 export async function getSetting(key: string): Promise<string | null> {
   return invoke('get_setting', { key });
 }

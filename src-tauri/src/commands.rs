@@ -535,6 +535,11 @@ pub fn stop_tts() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn get_platform() -> String {
+    std::env::consts::OS.to_string()
+}
+
+#[tauri::command]
 pub fn get_setting(db: State<Database>, key: String) -> Result<Option<String>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let result = conn.query_row(
