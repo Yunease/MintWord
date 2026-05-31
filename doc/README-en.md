@@ -11,8 +11,13 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 - **Text-to-Speech** — Windows / macOS system TTS + configurable AI TTS (OpenAI-compatible API)
 - **Study Statistics** — Review history, heatmap activity, and learning progress
 - **Mastered Cards** — Mark cards as mastered to exclude them from reviews
+- **Dictation Mode** — Randomly mix dictation into study sessions — hear the word then type it
+- **AI Reading Comprehension** — Import articles and generate reading comprehension questions with AI
+- **Library** — Manage learning articles with TXT import or manual paste
+- **Quick Preview** — Quickly review words from the current study session
+- **Notes** — Add personal notes to cards during study
 - **Theming** — 4 color themes (Mint, Ocean, Warm, Lavender) + dark mode
-- **i18n** — English and Chinese (中文) interface
+- **i18n** — Simplified Chinese (简体中文), Traditional Chinese (繁體中文), and English interface
 - **Keyboard Shortcuts** — Flip card, rate, mark mastered during study
 
 ## Built-in Decks
@@ -43,6 +48,7 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 | TTS (System) | Windows.Media.SpeechSynthesis / macOS `say` |
 | TTS (AI) | OpenAI-compatible API via reqwest |
 | Audio Playback | rodio |
+| AI Question Generation | OpenAI-compatible API via reqwest |
 
 ## Getting Started
 
@@ -86,6 +92,8 @@ npm run lint     # ESLint
 | 2            | Hazy         |
 | 3            | Remembered   |
 | M            | Mark mastered |
+| Ctrl + R     | Replay pronunciation |
+| Ctrl + ↑↓←→ | Quick preview navigation |
 
 ## License
 

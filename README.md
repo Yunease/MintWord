@@ -4,6 +4,8 @@
 
 **MintWord** 是一款基于 **SM-2 间隔重复算法** 的跨平台词汇学习桌面应用。前端使用 React + TypeScript + Vite，后端使用 Rust (Tauri v2)，数据库使用 SQLite。
 
+![img](https://i.postimg.cc/5yCNVW6h/temp-Img.png)
+
 ## 功能特点
 
 - **间隔重复** — 基于 SM-2 算法，科学安排复习计划
@@ -13,8 +15,13 @@
 - **语音朗读** — Windows / macOS 系统 TTS 及可配置的 AI TTS（兼容 OpenAI 接口）
 - **学习统计** — 复习记录、热力图和学习进度追踪
 - **掌握标记** — 标记已掌握的卡片，自动跳过复习
+- **听写模式** — 学习中随机穿插听写，播放单词读音后输入拼写
+- **AI 阅读理解** — 导入文章，使用 AI 生成阅读理解题目辅助学习
+- **文库** — 管理学习文章，支持 TXT 导入和手动粘贴
+- **快速预览** — 学习完成后快速浏览本轮学习的单词
+- **笔记功能** — 学习时为单词添加个人笔记
 - **主题配色** — 4 套主题色（薄荷、海洋、暖阳、薰衣草）+ 深色模式
-- **国际化** — 支持中文和英文界面
+- **国际化** — 支持简体中文、繁体中文和英文界面
 - **快捷键** — 学习时使用键盘快速操作
 
 ## 内置词库
@@ -32,19 +39,20 @@
 
 ## 技术栈
 
-| 层       | 技术                         |
-| -------- | ---------------------------- |
-| 桌面框架 | [Tauri v2](https://tauri.app/) |
-| 前端     | React 19 + TypeScript + Vite |
-| CSS      | Tailwind CSS v4              |
-| 状态管理 | TanStack React Query         |
-| 路由     | React Router DOM v7          |
-| 后端     | Rust                         |
-| 数据库   | SQLite (rusqlite)            |
-| 间隔重复 | SM-2 (SuperMemo 2)           |
+| 层         | 技术                               |
+| ---------- | ---------------------------------- |
+| 桌面框架   | [Tauri v2](https://tauri.app/)     |
+| 前端       | React 19 + TypeScript + Vite       |
+| CSS        | Tailwind CSS v4                    |
+| 状态管理   | TanStack React Query               |
+| 路由       | React Router DOM v7                |
+| 后端       | Rust                               |
+| 数据库     | SQLite (rusqlite)                  |
+| 间隔重复   | SM-2 (SuperMemo 2)                 |
 | TTS（系统） | Windows.Media.SpeechSynthesis / macOS `say` |
-| TTS（AI） | OpenAI 兼容接口 (reqwest)    |
-| 音频播放 | rodio                        |
+| TTS（AI）  | OpenAI 兼容接口 (reqwest)          |
+| 音频播放   | rodio                              |
+| AI 题目生成 | OpenAI 兼容接口 (reqwest)         |
 
 ## 快速开始
 
@@ -80,13 +88,15 @@ npm run lint     # ESLint 检查
 
 ## 学习快捷键
 
-| 按键         | 功能         |
-| ------------ | ------------ |
-| Space / Enter | 翻转卡片     |
-| 1            | 忘记         |
-| 2            | 模糊         |
-| 3            | 记得         |
-| M            | 标记已掌握   |
+| 按键          | 功能           |
+| ------------- | -------------- |
+| Space / Enter | 翻转卡片       |
+| 1             | 忘记           |
+| 2             | 模糊           |
+| 3             | 记得           |
+| M             | 标记已掌握     |
+| Ctrl + R      | 重播发音       |
+| Ctrl + ↑↓←→  | 快速预览导航   |
 
 ## 许可证
 
