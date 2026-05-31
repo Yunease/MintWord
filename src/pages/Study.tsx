@@ -5,6 +5,7 @@ import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi,
 import { t } from '../lib/i18n';
 import type { StudyCard, SessionResult } from '../types';
 import { save } from '@tauri-apps/plugin-dialog';
+import PreviewGrid from '../components/PreviewGrid';
 
 export default function Study() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ export default function Study() {
   const [results, setResults] = useState<SessionResult[]>([]);
   const [notes, setNotes] = useState('');
   const [playedTts, setPlayedTts] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: fetched, isLoading } = useQuery({
@@ -136,6 +138,10 @@ export default function Study() {
     return <div className="text-center py-16 text-gray-400">{t('study.no_cards')}</div>;
   }
 
+  if (done && previewMode) {
+    return <PreviewGrid cards={cards} onBack={() => setPreviewMode(false)} />;
+  }
+
   if (done) {
     const masteredCount = results.filter(r => r.mastered).length;
     return (
@@ -156,7 +162,13 @@ export default function Study() {
             </div>
           ))}
         </div>
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-3 justify-center flex-wrap">
+          <button
+            onClick={() => setPreviewMode(true)}
+            className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors font-medium"
+          >
+            {t('study.quick_preview')}
+          </button>
           <button
             onClick={handleExportCsv}
             className="px-4 py-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
