@@ -42,7 +42,7 @@ npm run lint             # ESLint 检查
 
 常用 type：`feat`、`fix`、`refactor`、`style`、`docs`、`chore`、`perf`、`test`、`build`、`ci`。
 
-使用多个 `-m` 参数撰写详细提交信息，用无序列表逐一说明变更的需求、代码、功能或影响：
+使用多个 `-m` 参数撰写详细提交信息，用无序列表逐一说明变更的需求、代码、功能或影响（可以说明其一或者多项内容）：
 
 ```bash
 git commit -m "feat(study): 新增快捷键支持" \
@@ -61,7 +61,7 @@ src/                    React 前端 (TSX)
   main.tsx              入口 → App.tsx
   App.tsx               路由 + QueryClient 配置
   pages/                页面组件（Dashboard, Decks, Study, Stats 等）
-  components/           共享 UI（Layout, PreviewGrid）
+  components/           共享 UI（Layout, PreviewGrid, Select）
   lib/api.ts            Tauri invoke 封装 — 前端调用 Rust 后端的唯一桥梁
   lib/i18n.ts           国际化
   types/index.ts        共享 TypeScript 类型定义
@@ -92,6 +92,27 @@ src-tauri/              Rust 后端
 - **内置词库**：`resources/bundled-decks/` 下的 CSV 文件通过 `include_str!()` 编译时嵌入，首次启动时导入。
 - **ID**：所有实体（decks、cards、articles）使用 UUID v4。
 - **Tauri 权限**：`capabilities/default.json` 控制前端可访问的能力。当前允许对话框 + 文件系统读取。
+
+## 国际化 (i18n)
+
+- 所有翻译键定义在 `src/lib/i18n.ts` 的 `messages` 对象中，当前支持 `zh`（简体中文）、`zh-TW`（繁体中文）、`en`（英文）。
+- **添加新语言时，必须第一时间在 `i18n.ts` 中补全所有翻译键**，然后才能在 Settings 页面添加对应的语言按钮。
+- 前端所有用户可见文本必须通过 `t('key')` 函数获取，不要硬编码字符串。
+- 参数化文本使用 `t('key', { param: value })` 格式，模板中用 `{param}` 占位。
+- 回退链：`currentLang` → `en` → 原始 key。
+- 语言设置通过 `getSetting('lang')` 持久化，在 `Layout` 组件启动时加载。
+
+## 共享组件
+
+项目中所有可复用 UI 组件位于 `src/components/`，编写代码时必须优先使用已有组件，不要重复实现。
+
+| 组件 | 文件 | 用途 |
+|------|------|------|
+| `Layout` | `components/Layout.tsx` | 应用外壳：顶栏导航 + 内容区，启动时加载主题和语言设置 |
+| `PreviewGrid` | `components/PreviewGrid.tsx` | 学习卡片快速预览网格，支持 Ctrl+方向键导航 |
+| `Select` | `components/Select.tsx` | 自定义下拉选择器，支持键盘导航（↑↓/Enter/Escape/Home/End）、无障碍 ARIA、暗色模式。用法：`<Select options={[{value, label}]} value={v} onChange={fn} label="..." />` |
+
+**规则：实现新的可复用组件后，必须写入此表。**
 
 ## TypeScript 配置要点
 
