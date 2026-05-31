@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { speakText, speakAi, getSetting, setSetting, testAiApi, getAiPrompt, setAiPrompt } from '../lib/api';
+import { speakText, speakAi, getPlatform, getSetting, setSetting, testAiApi, getAiPrompt, setAiPrompt } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
 
@@ -23,6 +23,7 @@ export default function Settings() {
   const [theme, setTheme] = useState<Theme>('mint');
   const [darkMode, setDarkMode] = useState(false);
   const [dictationEnabled, setDictationEnabled] = useState(true);
+  const [platform, setPlatform] = useState('unknown');
 
   const [aiUrl, setAiUrl] = useState('');
   const [aiKey, setAiKey] = useState('');
@@ -32,6 +33,7 @@ export default function Settings() {
   const [aiPrompt, setAiPromptState] = useState('');
 
   useEffect(() => {
+    getPlatform().then(setPlatform).catch(() => undefined);
     (async () => {
       const url = await getSetting('tts_ai_url');
       if (url) setTtsUrl(url);
@@ -94,14 +96,26 @@ export default function Settings() {
   async function handleThemeChange(newTheme: Theme) {
     setTheme(newTheme);
     await setSetting('theme', newTheme);
-    try { localStorage.setItem('mintword_theme', newTheme); } catch {}
+    try { localStorage.setItem('mintword_theme', newTheme); } catch { /* localStorage may be unavailable */ }
   }
 
   async function handleDarkMode(val: boolean) {
     setDarkMode(val);
     await setSetting('dark_mode', val.toString());
-    try { localStorage.setItem('mintword_dark_mode', val.toString()); } catch {}
+    try { localStorage.setItem('mintword_dark_mode', val.toString()); } catch { /* localStorage may be unavailable */ }
   }
+
+  const systemTtsSupported = platform === 'windows' || platform === 'macos';
+  const systemTtsLabel = platform === 'macos'
+    ? t('settings.tts_system_macos')
+    : platform === 'windows'
+      ? t('settings.tts_system_windows')
+      : t('settings.tts_system');
+  const systemTtsDetail = platform === 'macos'
+    ? 'macOS say'
+    : platform === 'windows'
+      ? 'Windows.Media.SpeechSynthesis'
+      : t('settings.tts_system_unsupported');
 
   const sections = [
     { id: 'general', label: t('settings.language') },
@@ -213,12 +227,13 @@ export default function Settings() {
             <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium text-sm">{t('settings.tts_system')}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Windows SAPI5</div>
+                  <div className="font-medium text-sm">{systemTtsLabel}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{systemTtsDetail}</div>
                 </div>
                 <button
                   onClick={() => speakText(t('tts.test_message')).catch(() => {})}
-                  className="px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-md text-xs hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                  disabled={!systemTtsSupported}
+                  className="px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-md text-xs hover:bg-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                 >
                   {t('settings.tts_test')}
                 </button>

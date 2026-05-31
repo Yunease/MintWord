@@ -145,6 +145,13 @@ pub fn get_cards(db: State<Database>, deck_id: String) -> Result<Vec<Card>, Stri
     }).map_err(|e| e.to_string())?
     .collect::<Result<Vec<_>, _>>()
     .map_err(|e| e.to_string())?;
+    // Normalize escaped newlines for existing data imported by older versions
+    let cards: Vec<Card> = cards.into_iter().map(|mut c| {
+        c.back = crate::importer::normalize_newlines(&c.back);
+        c.example_sentence = crate::importer::normalize_newlines(&c.example_sentence);
+        c.front = crate::importer::normalize_newlines(&c.front);
+        c
+    }).collect();
     Ok(cards)
 }
 
@@ -212,6 +219,13 @@ pub fn get_study_cards(db: State<Database>, deck_id: String, limit: i32) -> Resu
     }).map_err(|e| e.to_string())?
     .collect::<Result<Vec<_>, _>>()
     .map_err(|e| e.to_string())?;
+    // Normalize escaped newlines for existing data imported by older versions
+    let cards: Vec<StudyCard> = cards.into_iter().map(|mut c| {
+        c.back = crate::importer::normalize_newlines(&c.back);
+        c.example_sentence = crate::importer::normalize_newlines(&c.example_sentence);
+        c.front = crate::importer::normalize_newlines(&c.front);
+        c
+    }).collect();
     Ok(cards)
 }
 
@@ -532,6 +546,11 @@ pub async fn speak_ai(text: String, api_url: String, api_key: String, voice: Str
 pub fn stop_tts() -> Result<(), String> {
     crate::tts::stop_audio();
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_platform() -> String {
+    std::env::consts::OS.to_string()
 }
 
 #[tauri::command]

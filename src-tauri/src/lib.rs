@@ -98,6 +98,7 @@ pub fn run() {
             commands::speak_text,
             commands::speak_ai,
             commands::stop_tts,
+            commands::get_platform,
             commands::get_setting,
             commands::set_setting,
             commands::get_articles,

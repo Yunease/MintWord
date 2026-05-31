@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getCards, addCard, deleteCard } from '../lib/api';
 import { t } from '../lib/i18n';
 
+
 export default function DeckDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();

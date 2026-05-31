@@ -10,7 +10,7 @@
 - **内置词库** — 预装 8 套国内考试词库（CET-4、CET-6、考研、GRE、TOEFL、IELTS、高考、中考）
 - **自定义词库** — 创建自己的词库，支持手动添加、批量添加
 - **CSV 导入** — 从 CSV 文件导入词汇
-- **语音朗读** — Windows 原生 SAPI5 TTS 及可配置的 AI TTS（兼容 OpenAI 接口）
+- **语音朗读** — Windows / macOS 系统 TTS 及可配置的 AI TTS（兼容 OpenAI 接口）
 - **学习统计** — 复习记录、热力图和学习进度追踪
 - **掌握标记** — 标记已掌握的卡片，自动跳过复习
 - **主题配色** — 4 套主题色（薄荷、海洋、暖阳、薰衣草）+ 深色模式
@@ -42,7 +42,7 @@
 | 后端     | Rust                         |
 | 数据库   | SQLite (rusqlite)            |
 | 间隔重复 | SM-2 (SuperMemo 2)           |
-| TTS（Windows） | Windows.Media.SpeechSynthesis |
+| TTS（系统） | Windows.Media.SpeechSynthesis / macOS `say` |
 | TTS（AI） | OpenAI 兼容接口 (reqwest)    |
 | 音频播放 | rodio                        |
 

@@ -8,7 +8,7 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 - **Built-in Decks** — 8 Chinese exam vocabulary decks (CET-4, CET-6, TOEFL, IELTS, GRE, 考研, 高考, 中考)
 - **Custom Decks** — Create your own decks and add words manually or in bulk
 - **CSV Import** — Import vocabulary from CSV files
-- **Text-to-Speech** — Windows native SAPI5 TTS + configurable AI TTS (OpenAI-compatible API)
+- **Text-to-Speech** — Windows / macOS system TTS + configurable AI TTS (OpenAI-compatible API)
 - **Study Statistics** — Review history, heatmap activity, and learning progress
 - **Mastered Cards** — Mark cards as mastered to exclude them from reviews
 - **Theming** — 4 color themes (Mint, Ocean, Warm, Lavender) + dark mode
@@ -40,7 +40,7 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 | Backend | Rust |
 | Database | SQLite (rusqlite) |
 | Spaced Repetition | SM-2 (SuperMemo 2) |
-| TTS (Windows) | Windows.Media.SpeechSynthesis |
+| TTS (System) | Windows.Media.SpeechSynthesis / macOS `say` |
 | TTS (AI) | OpenAI-compatible API via reqwest |
 | Audio Playback | rodio |
 
