@@ -69,16 +69,6 @@ npx tauri dev
 npx tauri build
 ```
 
-### Release macOS Bundles
-
-Push an `app-v*` tag (for example, `app-v0.2.0`) or manually run the
-`Release macOS` GitHub Actions workflow. It uploads `.dmg` and `.app` bundles
-for both Apple Silicon (`arm64`) and Intel (`x64`) Macs to a GitHub Release.
-
-The default bundle uses ad-hoc signing. Without an Apple Developer certificate,
-users may need to allow the downloaded app in macOS Privacy & Security settings
-when opening it for the first time.
-
 ### Frontend-only
 
 ```bash

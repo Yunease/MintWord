@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { t } from '../lib/i18n';
+import { formatDisplayText } from '../lib/text';
 import type { StudyCard } from '../types';
 
 interface PreviewGridProps {
@@ -74,8 +75,8 @@ export default function PreviewGrid({ cards, onBack }: PreviewGridProps) {
                     {card.front}
                   </div>
                   {isFocused && (
-                    <div className="mt-1.5 text-xs text-gray-600 dark:text-gray-400 leading-tight break-words max-w-full line-clamp-3">
-                      {card.back}
+                    <div className="mt-1.5 text-xs text-gray-600 dark:text-gray-400 leading-tight break-words max-w-full line-clamp-3 whitespace-pre-line">
+                      {formatDisplayText(card.back)}
                     </div>
                   )}
                 </>

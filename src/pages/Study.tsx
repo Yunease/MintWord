@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi, stopTts, exportSessionCsv, getSetting } from '../lib/api';
 import { t } from '../lib/i18n';
+import { formatDisplayText } from '../lib/text';
 import type { StudyCard, SessionResult } from '../types';
 import { save } from '@tauri-apps/plugin-dialog';
 import PreviewGrid from '../components/PreviewGrid';
@@ -337,7 +338,7 @@ export default function Study() {
                 {t('study.your_input')}: <span className="line-through">{userInput}</span>
               </div>
             )}
-            <div className="text-lg text-center whitespace-pre-line leading-relaxed">{current.back}</div>
+            <div className="text-lg text-center whitespace-pre-line leading-relaxed">{formatDisplayText(current.back)}</div>
             {current.example_sentence && (
               <div className="text-sm text-gray-400 dark:text-gray-500 italic text-center">
                 {current.example_sentence}
@@ -368,7 +369,7 @@ export default function Study() {
                 <div className="text-base text-gray-400 dark:text-gray-500">/{current.phonetic}/</div>
               )}
             </div>
-            <div className="text-lg text-center whitespace-pre-line leading-relaxed">{current.back}</div>
+            <div className="text-lg text-center whitespace-pre-line leading-relaxed">{formatDisplayText(current.back)}</div>
             {current.example_sentence && (
               <div className="text-sm text-gray-400 dark:text-gray-500 italic text-center">
                 {current.example_sentence}

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getCards, addCard, deleteCard } from '../lib/api';
 import { t } from '../lib/i18n';
+import { formatDisplayText } from '../lib/text';
 
 export default function DeckDetail() {
   const { id } = useParams<{ id: string }>();
@@ -111,7 +112,7 @@ export default function DeckDetail() {
                 <div className="text-sm text-gray-400 dark:text-gray-500">{card.phonetic}</div>
               )}
               <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 whitespace-pre-line line-clamp-2">
-                {card.back}
+                {formatDisplayText(card.back)}
               </div>
             </div>
             <button

@@ -70,15 +70,6 @@ npx tauri dev
 npx tauri build
 ```
 
-### 发布 macOS 安装包
-
-推送 `app-v*` 标签（例如 `app-v0.2.0`），或在 GitHub Actions 中手动运行
-`Release macOS` 工作流。工作流会将 Apple Silicon (`arm64`) 和 Intel (`x64`)
-版本的 `.dmg` 与 `.app` 上传到 GitHub Release。
-
-默认使用 ad-hoc 签名。未配置 Apple Developer 证书时，首次打开下载的应用可能需要
-在 macOS 的“隐私与安全性”设置中手动允许。
-
 ### 仅前端
 
 ```bash

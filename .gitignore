@@ -17,6 +17,16 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+*.app/
+*.dmg
+*.dSYM/
+*.pkg
 *.suo
 *.ntvs*
 *.njsproj
