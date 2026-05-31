@@ -18,7 +18,23 @@ export default function Study() {
   const [notes, setNotes] = useState('');
   const [playedTts, setPlayedTts] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [modes, setModes] = useState<('recall' | 'dictation')[]>([]);
+  const [userInput, setUserInput] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
+
+  function generateModes(count: number): ('recall' | 'dictation')[] {
+    const half = Math.ceil(count / 2);
+    const ms: ('recall' | 'dictation')[] = [
+      ...Array(half).fill('recall' as const),
+      ...Array(count - half).fill('dictation' as const),
+    ];
+    for (let i = ms.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ms[i], ms[j]] = [ms[j], ms[i]];
+    }
+    return ms;
+  }
 
   const { data: fetched, isLoading } = useQuery({
     queryKey: ['study', id],
@@ -29,11 +45,13 @@ export default function Study() {
   useEffect(() => {
     if (fetched) {
       setCards(fetched);
+      setModes(generateModes(fetched.length));
       setIndex(0);
       setFlipped(false);
       setDone(fetched.length === 0);
       setResults([]);
       setPlayedTts(false);
+      setUserInput('');
     }
   }, [fetched]);
 
@@ -42,6 +60,7 @@ export default function Study() {
   useEffect(() => {
     setNotes(current?.notes || '');
     setPlayedTts(false);
+    setUserInput('');
   }, [current]);
 
   useEffect(() => {
@@ -51,7 +70,13 @@ export default function Study() {
       speakCurrent();
     }, 200);
     return () => clearTimeout(timer);
-  }, [current, flipped, playedTts]);
+  }, [current, flipped]);
+
+  useEffect(() => {
+    if (current && modes[index] === 'dictation' && !flipped) {
+      inputRef.current?.focus();
+    }
+  }, [current, index, modes, flipped]);
 
   async function speakCurrent() {
     if (!current) return;
@@ -99,8 +124,16 @@ export default function Study() {
     } else {
       setIndex(i => i + 1);
       setFlipped(false);
+      setUserInput('');
+      setPlayedTts(false);
     }
     queryClient.invalidateQueries({ queryKey: ['stats'] });
+  }
+
+  function handleDictationSubmit() {
+    if (!current || flipped) return;
+    setFlipped(true);
+    setPlayedTts(true);
   }
 
   async function handleExportCsv() {
@@ -118,10 +151,19 @@ export default function Study() {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (done) return;
+
+      if (e.ctrlKey && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        speakCurrent();
+        return;
+      }
+
       if (!flipped) {
-        if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault();
-          setFlipped(true);
+        if (modes[index] === 'recall') {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            setFlipped(true);
+          }
         }
         return;
       }
@@ -132,7 +174,7 @@ export default function Study() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [flipped, done, handleRating, handleMastered]);
+  }, [flipped, done, handleRating, handleMastered, modes, index]);
 
   if (isLoading) {
     return <div className="text-center py-16 text-gray-400">{t('study.no_cards')}</div>;
@@ -200,22 +242,90 @@ export default function Study() {
     );
   }
 
+  const isCorrect = current && userInput.trim().toLowerCase() === current.front.toLowerCase();
+
   return (
     <div className="max-w-lg mx-auto space-y-4">
       <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <Link to="/" className="hover:text-gray-700 dark:hover:text-gray-300">
           &larr; {t('common.back')}
         </Link>
+        <span className="text-xs text-primary font-medium">
+          {modes[index] === 'dictation' ? t('study.dictation') : t('study.mode_recall')}
+        </span>
         <span className="tabular-nums">
           {index + 1} / {cards.length}
         </span>
       </div>
 
       <div
-        onClick={() => !flipped && setFlipped(true)}
+        onClick={() => {
+          if (modes[index] === 'recall' && !flipped) setFlipped(true);
+        }}
         className="cursor-pointer min-h-[280px] bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center justify-center p-8 select-none"
       >
-        {!flipped ? (
+        {modes[index] === 'dictation' && !flipped ? (
+          <div className="w-full space-y-5">
+            <div className="text-center space-y-3">
+              <div className="text-xs text-primary font-medium">{t('study.dictation')}</div>
+              {current.phonetic && (
+                <div className="text-base text-gray-400 dark:text-gray-500">/{current.phonetic}/</div>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); speakCurrent(); }}
+                className="text-sm text-primary hover:text-primary-hover transition-colors"
+              >
+                🔊 {t('study.replay')}
+              </button>
+            </div>
+            <input
+              ref={inputRef}
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleDictationSubmit();
+                }
+              }}
+              placeholder={t('study.dictation_placeholder')}
+              className="w-full px-4 py-3 border-2 border-primary/50 focus:border-primary rounded-xl bg-gray-50 dark:bg-gray-800 text-xl text-center font-medium focus:outline-none transition-colors"
+            />
+            <div className="text-xs text-gray-400 dark:text-gray-500 text-center">
+              {t('study.dictation_hint')}
+            </div>
+          </div>
+        ) : modes[index] === 'dictation' && flipped ? (
+          <div className="w-full space-y-4">
+            <div className="text-center">
+              <div className="text-xs text-primary font-medium mb-2">{t('study.dictation')}</div>
+              <div className="text-3xl font-bold">{current.front}</div>
+              {current.phonetic && (
+                <div className="text-base text-gray-400 dark:text-gray-500">/{current.phonetic}/</div>
+              )}
+            </div>
+            <div className="text-center">
+              <span className={`inline-block px-4 py-2 rounded-lg text-sm font-medium ${
+                isCorrect
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+              }`}>
+                {isCorrect ? '✓ ' + t('study.dictation_correct') : '✗ ' + t('study.dictation_wrong', { word: current.front })}
+              </span>
+            </div>
+            {!isCorrect && userInput && (
+              <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+                {t('study.your_input')}: <span className="line-through">{userInput}</span>
+              </div>
+            )}
+            <div className="text-lg text-center whitespace-pre-line leading-relaxed">{current.back}</div>
+            {current.example_sentence && (
+              <div className="text-sm text-gray-400 dark:text-gray-500 italic text-center">
+                {current.example_sentence}
+              </div>
+            )}
+          </div>
+        ) : !flipped ? (
           <div className="text-center space-y-4">
             <div className="text-4xl font-bold">{current.front}</div>
             {current.phonetic && (

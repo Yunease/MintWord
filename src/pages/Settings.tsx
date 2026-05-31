@@ -431,6 +431,7 @@ export default function Settings() {
                 { key: '2', desc: t('shortcuts.hazy') },
                 { key: '3', desc: t('shortcuts.remembered') },
                 { key: 'M', desc: t('shortcuts.mastered') },
+                { key: t('shortcuts.replay_key'), desc: t('shortcuts.replay') },
                 { key: t('shortcuts.preview_keys'), desc: t('shortcuts.preview_navigate') },
               ].map(({ key, desc }) => (
                 <div key={key} className="flex items-center justify-between px-4 py-2.5">
