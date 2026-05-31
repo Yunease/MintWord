@@ -2,6 +2,35 @@ use rusqlite::Connection;
 use uuid::Uuid;
 use chrono::Utc;
 
+/// Convert literal backslash-escaped newline sequences (\r\n, \n, \r) to real newlines.
+/// Must process \r\n before \n and \r to avoid double replacement.
+pub fn normalize_newlines(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let chars: Vec<char> = s.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '\\' && i + 1 < chars.len() {
+            match chars[i + 1] {
+                'r' if i + 2 < chars.len() && chars[i + 2] == 'n' => {
+                    out.push('\n');
+                    i += 3;
+                    continue;
+                }
+                'n' | 'r' => {
+                    out.push('\n');
+                    i += 2;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        out.push(chars[i]);
+        i += 1;
+    }
+    out
+}
+
+
 pub fn import_csv(conn: &mut Connection, deck_id: &str, file_path: &str) -> Result<i32, String> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(true)
@@ -40,7 +69,9 @@ pub fn import_csv(conn: &mut Connection, deck_id: &str, file_path: &str) -> Resu
             continue;
         }
 
-        let back = record.get(translation_idx.or(back_idx).unwrap()).unwrap_or("").trim().to_string();
+        let back = normalize_newlines(
+            record.get(translation_idx.or(back_idx).unwrap()).unwrap_or("")
+        ).trim().to_string();
         let phonetic = phonetic_idx
             .and_then(|i| record.get(i))
             .unwrap_or("")
@@ -82,8 +113,12 @@ pub fn import_bundled_csv(conn: &mut Connection, csv_data: &str, deck_id: &str) 
         if front.is_empty() {
             continue;
         }
-        let phonetic = record.get(1).unwrap_or("").trim().to_string();
-        let back = record.get(2).unwrap_or("").trim().to_string();
+        let phonetic = normalize_newlines(
+            record.get(1).unwrap_or("")
+        ).trim().to_string();
+        let back = normalize_newlines(
+            record.get(2).unwrap_or("")
+        ).trim().to_string();
 
         let id = Uuid::new_v4().to_string();
         tx.execute(
