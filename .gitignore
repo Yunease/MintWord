@@ -25,3 +25,37 @@ dist-ssr
 
 # Rust / Tauri build artifacts
 src-tauri/target/
+
+# Agents
+.omx/
+.codex/
+.claude/
+.opencode/
+.agents/
+.cursor/
+.cursor-server/
+.windsurf/
+.windsurf-server/
+.cline/
+.continue/
+.copilot/
+.codeium/
+.gemini/
+.augment/
+.codebuddy/
+.crush/
+.factory/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.neovate/
+.openhands/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.trae-cn/
+.vibe/
+.zencoder/
