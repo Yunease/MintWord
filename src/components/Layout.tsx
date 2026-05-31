@@ -1,15 +1,20 @@
 import { NavLink } from 'react-router-dom';
-import { t } from '../lib/i18n';
+import { t, setLang, type Lang } from '../lib/i18n';
 import { useEffect } from 'react';
 import { getSetting } from '../lib/api';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
-      const [savedDark, savedTheme] = await Promise.all([
+      const [savedDark, savedTheme, savedLang] = await Promise.all([
         getSetting('dark_mode'),
         getSetting('theme'),
+        getSetting('lang'),
       ]);
+
+      if (savedLang === 'zh' || savedLang === 'zh-TW' || savedLang === 'en') {
+        setLang(savedLang as Lang);
+      }
 
       if (savedDark === 'true') {
         document.documentElement.classList.add('dark');
