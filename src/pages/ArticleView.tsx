@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { getArticle, generateQuestions, saveQuestions, getArticleQuestions, getSetting } from '../lib/api';
+import { getArticle, generateQuestions, generateQuestionsWithConfig, saveQuestions, getArticleQuestions, getSetting } from '../lib/api';
 import { t } from '../lib/i18n';
-import type { Question } from '../types';
+import type { Question, ProviderConfig } from '../types';
 
 export default function ArticleView() {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +27,7 @@ export default function ArticleView() {
 
   useEffect(() => {
     if (savedQuestions && savedQuestions.length > 0) {
-      setQuestions(savedQuestions);
+      setQuestions(savedQuestions); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [savedQuestions]);
 
@@ -35,11 +35,25 @@ export default function ArticleView() {
     mutationFn: async () => {
       setGenerating(true);
       setError('');
+      // Try new multi-provider config first
+      const configListStr = await getSetting('ai_provider_config_list');
+      if (configListStr) {
+        try {
+          const configList: ProviderConfig[] = JSON.parse(configListStr);
+          if (configList.length > 0) {
+            const config = configList[0]; // Use first configured model
+            const qs = await generateQuestionsWithConfig(id!, config);
+            await saveQuestions(id!, qs);
+            return qs;
+          }
+        } catch { /* fall through to legacy */ }
+      }
+      // Fallback to legacy settings
       const apiUrl = await getSetting('ai_api_url');
       const apiKey = await getSetting('ai_api_key');
       const model = await getSetting('ai_model');
-      if (!apiUrl || !apiKey) throw new Error(t('library.config_first'));
-      const qs = await generateQuestions(id!, apiUrl, apiKey, model || 'gpt-4o-mini');
+      if (!apiKey) throw new Error(t('library.config_first'));
+      const qs = await generateQuestions(id!, apiUrl || 'https://api.openai.com/v1', apiKey, model || 'gpt-4o-mini');
       await saveQuestions(id!, qs);
       return qs;
     },
