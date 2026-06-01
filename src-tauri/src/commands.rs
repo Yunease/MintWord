@@ -863,7 +863,7 @@ pub async fn request_device_code() -> Result<DeviceCode, String> {
     let auth_base_url = "https://auth.openai.com/api/accounts";
     
     let body = serde_json::json!({
-        "client_id": "openai-codex-cli"
+        "client_id": "app_EMoamEEZ73f0CkXaXp7hrann"
     });
     
     let response = client

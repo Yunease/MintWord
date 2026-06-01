@@ -371,13 +371,34 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
             {selectedProvider.id === 'chatgpt-plus' && currentLoginMethod === 'url' && (
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.login_method_url')}</label>
-                <button
-                  onClick={handleUrlLogin}
-                  className="w-full px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
-                >
-                  {t('ai.login_url_button')}
-                </button>
-                <p className="text-xs text-gray-400 mt-1">{t('ai.login_url_hint')}</p>
+                <div className="space-y-2">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <p className="text-sm font-medium mb-2">{t('ai.login_url_title')}</p>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href="https://chatgpt.com/auth/login"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline text-sm flex-1 truncate"
+                      >
+                        https://chatgpt.com/auth/login
+                      </a>
+                      <button
+                        onClick={() => navigator.clipboard.writeText('https://chatgpt.com/auth/login')}
+                        className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500"
+                      >
+                        {t('common.copy')}
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleUrlLogin}
+                    className="w-full px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
+                  >
+                    {t('ai.login_url_button')}
+                  </button>
+                  <p className="text-xs text-gray-400">{t('ai.login_url_hint')}</p>
+                </div>
               </div>
             )}
 
