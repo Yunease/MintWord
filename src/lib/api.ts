@@ -166,3 +166,20 @@ export async function getAiPrompt(): Promise<string> {
 export async function setAiPrompt(prompt: string): Promise<void> {
   return invoke('set_ai_prompt', { prompt });
 }
+
+// === Device Code Login ===
+
+export interface DeviceCode {
+  user_code: string;
+  verification_url: string;
+  device_auth_id: string;
+  interval: number;
+}
+
+export async function requestDeviceCode(): Promise<DeviceCode> {
+  return invoke('request_device_code');
+}
+
+export async function completeDeviceCodeLogin(deviceCode: DeviceCode): Promise<string> {
+  return invoke('complete_device_code_login', { deviceCode });
+}

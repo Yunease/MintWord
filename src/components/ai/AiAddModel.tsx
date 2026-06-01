@@ -1,8 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { ProviderAvatar } from '../ProviderAvatar';
 import { t } from '../../lib/i18n';
-import { getSetting, setSetting, testAiConfig } from '../../lib/api';
-import { invoke } from '@tauri-apps/api/core';
+import { getSetting, setSetting, testAiConfig, requestDeviceCode, completeDeviceCodeLogin } from '../../lib/api';
 import { PROVIDERS, getProviderById, getEffectiveUrl, getFilteredModels, type AiProvider } from '../../lib/aiProviders';
 import type { ProviderConfig } from '../../types';
 import Select from '../Select';
@@ -160,11 +159,10 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
     
     try {
       // Call Rust backend to get device code
-      const result = await invoke('request_device_code');
+      const result = await requestDeviceCode();
       if (result) {
-        const data = result as { user_code: string; verification_url: string };
-        setDeviceCode(data.user_code);
-        setVerificationUrl(data.verification_url);
+        setDeviceCode(result.user_code);
+        setVerificationUrl(result.verification_url);
       }
     } catch (error) {
       setDeviceCodeError(`Failed to get device code: ${error}`);
@@ -178,8 +176,11 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
     if (!deviceCode) return;
     
     try {
-      await invoke('complete_device_code_login', {
-        deviceCode: deviceCode
+      await completeDeviceCodeLogin({
+        user_code: deviceCode,
+        verification_url: verificationUrl,
+        device_auth_id: '',
+        interval: 5
       });
       // If successful, set a placeholder API key to indicate login success
       setApiKey('device-code-authenticated');
