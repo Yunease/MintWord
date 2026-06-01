@@ -700,6 +700,44 @@ pub fn get_platform() -> String {
 }
 
 #[tauri::command]
+pub fn clear_learning_progress(db: State<Database>) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+    conn.execute(
+        "UPDATE cards SET ease_factor = 2.5, interval = 0, repetitions = 0, next_review_at = ?1, updated_at = ?1, mastered = 0, stability = 0, difficulty = 0, lapses = 0, fsrs_state = 0, last_review_at = ''",
+        rusqlite::params![now],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_review_logs(db: State<Database>) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM review_log", []).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_settings(db: State<Database>) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM settings", []).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_all_cache(db: State<Database>) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+    conn.execute(
+        "UPDATE cards SET ease_factor = 2.5, interval = 0, repetitions = 0, next_review_at = ?1, updated_at = ?1, mastered = 0, stability = 0, difficulty = 0, lapses = 0, fsrs_state = 0, last_review_at = ''",
+        rusqlite::params![now],
+    ).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM review_log", []).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM settings", []).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_setting(db: State<Database>, key: String) -> Result<Option<String>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let result = conn.query_row(

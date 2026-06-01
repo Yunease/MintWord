@@ -118,6 +118,10 @@ pub fn run() {
             commands::get_chatgpt_login_url,
             commands::request_device_code,
             commands::complete_device_code_login,
+            commands::clear_learning_progress,
+            commands::clear_review_logs,
+            commands::clear_settings,
+            commands::clear_all_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

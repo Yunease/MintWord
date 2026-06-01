@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt } from '../lib/api';
+import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt, clearLearningProgress, clearReviewLogs, clearSettings, clearAllCache } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
 import AiModelList from '../components/ai/AiModelList';
@@ -134,6 +134,7 @@ export default function Settings() {
     { id: 'learning', label: t('settings.learning_mode') },
     { id: 'tts', label: t('settings.tts') },
     { id: 'ai', label: t('settings.ai') },
+    { id: 'data', label: t('settings.data_management') },
     { id: 'shortcuts', label: t('settings.shortcuts') },
     { id: 'about', label: t('settings.about') },
   ] as const;
@@ -533,6 +534,99 @@ export default function Settings() {
           </section>
         )}
 
+        {activeSection === 'data' && (
+          <section className="space-y-4">
+            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              {t('settings.data_management')}
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.clear_cache_desc')}</p>
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">{t('settings.clear_learning_progress')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_learning_progress_desc')}</div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (window.confirm(t('confirm.clear_learning_progress'))) {
+                      await clearLearningProgress();
+                      setSaved(true);
+                      setTimeout(() => setSaved(false), 2000);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 transition-colors"
+                >
+                  {t('settings.clear_learning_progress')}
+                </button>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-gray-800" />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">{t('settings.clear_review_logs')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_review_logs_desc')}</div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (window.confirm(t('confirm.clear_review_logs'))) {
+                      await clearReviewLogs();
+                      setSaved(true);
+                      setTimeout(() => setSaved(false), 2000);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 transition-colors"
+                >
+                  {t('settings.clear_review_logs')}
+                </button>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-gray-800" />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">{t('settings.clear_settings')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_settings_desc')}</div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (window.confirm(t('confirm.clear_settings'))) {
+                      await clearSettings();
+                      setSaved(true);
+                      setTimeout(() => setSaved(false), 2000);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 transition-colors"
+                >
+                  {t('settings.clear_settings')}
+                </button>
+              </div>
+
+              <div className="border-t border-gray-100 dark:border-gray-800" />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-red-600 dark:text-red-400">{t('settings.clear_all')}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_all_desc')}</div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (window.confirm(t('confirm.clear_all'))) {
+                      await clearAllCache();
+                      setSaved(true);
+                      setTimeout(() => setSaved(false), 2000);
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 transition-colors"
+                >
+                  {t('settings.clear_all')}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {activeSection === 'shortcuts' && (
           <section className="space-y-3">
             <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -572,7 +666,7 @@ export default function Settings() {
 
         {saved && (
           <div className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg">
-            {t('toast.saved')}
+            {t('toast.cache_cleared')}
           </div>
         )}
       </div>

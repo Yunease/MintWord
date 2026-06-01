@@ -196,3 +196,21 @@ export async function completeDeviceCodeLogin(deviceCode: DeviceCode): Promise<s
 export async function getChatgptLoginUrl(): Promise<string> {
   return invoke('get_chatgpt_login_url');
 }
+
+// === Cache Management ===
+
+export async function clearLearningProgress(): Promise<void> {
+  return invoke('clear_learning_progress');
+}
+
+export async function clearReviewLogs(): Promise<void> {
+  return invoke('clear_review_logs');
+}
+
+export async function clearSettings(): Promise<void> {
+  return invoke('clear_settings');
+}
+
+export async function clearAllCache(): Promise<void> {
+  return invoke('clear_all_cache');
+}
