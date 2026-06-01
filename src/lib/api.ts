@@ -183,3 +183,7 @@ export async function requestDeviceCode(): Promise<DeviceCode> {
 export async function completeDeviceCodeLogin(deviceCode: DeviceCode): Promise<string> {
   return invoke('complete_device_code_login', { deviceCode });
 }
+
+export async function getChatgptLoginUrl(): Promise<string> {
+  return invoke('get_chatgpt_login_url');
+}

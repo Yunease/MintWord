@@ -3,6 +3,10 @@ use crate::db::Database;
 use crate::engine;
 use crate::library;
 use crate::ai;
+use rand::Rng;
+use sha2::{Digest, Sha256};
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct Deck {
@@ -856,42 +860,105 @@ pub struct DeviceCode {
     pub interval: u64,
 }
 
+const OPENAI_AUTH_BASE_URL: &str = "https://auth.openai.com";
+const OPENAI_CODEX_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
+const OPENAI_CODEX_REDIRECT_URI: &str = "http://localhost:1455/auth/callback";
+const OPENAI_CODEX_DEVICE_CALLBACK_URL: &str = "https://auth.openai.com/deviceauth/callback";
+const OPENAI_CODEX_ORIGINATOR: &str = "codex_cli_rs";
+const OPENAI_CODEX_SCOPE: &str =
+    "openid profile email offline_access api.connectors.read api.connectors.invoke";
+const OPENAI_CODEX_UA: &str = concat!("codex_cli_rs/", env!("CARGO_PKG_VERSION"));
+
+fn random_urlsafe(len: usize) -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut rng = rand::thread_rng();
+    (0..len)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+fn pkce_challenge_s256(verifier: &str) -> String {
+    let digest = Sha256::digest(verifier.as_bytes());
+    URL_SAFE_NO_PAD.encode(digest)
+}
+
+fn parse_interval(value: &serde_json::Value) -> u64 {
+    if let Some(n) = value.as_u64() {
+        return n;
+    }
+    if let Some(s) = value.as_str() {
+        return s.trim().parse::<u64>().unwrap_or(5);
+    }
+    5
+}
+
+#[tauri::command]
+pub fn get_chatgpt_login_url() -> Result<String, String> {
+    let state = random_urlsafe(32);
+    let code_verifier = random_urlsafe(64);
+    let code_challenge = pkce_challenge_s256(&code_verifier);
+    let mut url = reqwest::Url::parse(&format!("{}/oauth/authorize", OPENAI_AUTH_BASE_URL))
+        .map_err(|e| format!("Failed to build auth URL: {}", e))?;
+
+    url.query_pairs_mut()
+        .append_pair("response_type", "code")
+        .append_pair("client_id", OPENAI_CODEX_CLIENT_ID)
+        .append_pair("redirect_uri", OPENAI_CODEX_REDIRECT_URI)
+        .append_pair("scope", OPENAI_CODEX_SCOPE)
+        .append_pair("code_challenge", &code_challenge)
+        .append_pair("code_challenge_method", "S256")
+        .append_pair("id_token_add_organizations", "true")
+        .append_pair("codex_cli_simplified_flow", "true")
+        .append_pair("state", &state)
+        .append_pair("originator", OPENAI_CODEX_ORIGINATOR);
+
+    Ok(url.to_string())
+}
+
 #[tauri::command]
 pub async fn request_device_code() -> Result<DeviceCode, String> {
-    // Use OpenAI's device code endpoint
     let client = reqwest::Client::new();
-    let auth_base_url = "https://auth.openai.com/api/accounts";
+    let auth_base_url = format!("{}/api/accounts", OPENAI_AUTH_BASE_URL);
     
     let body = serde_json::json!({
-        "client_id": "app_EMoamEEZ73f0CkXaXp7hrann"
+        "client_id": OPENAI_CODEX_CLIENT_ID
     });
     
     let response = client
         .post(format!("{}/deviceauth/usercode", auth_base_url))
         .header("Content-Type", "application/json")
+        .header("User-Agent", OPENAI_CODEX_UA)
         .json(&body)
         .send()
         .await
         .map_err(|e| format!("Failed to request device code: {}", e))?;
     
     if !response.status().is_success() {
-        return Err(format!("Device code request failed with status: {}", response.status()));
+        let status = response.status();
+        let body_text = response.text().await.unwrap_or_default();
+        if status == reqwest::StatusCode::NOT_FOUND {
+            return Err("Device code login is not enabled for this server. Please use URL login.".to_string());
+        }
+        return Err(format!("Device code request failed with status {}: {}", status, body_text));
     }
     
     let data: serde_json::Value = response.json().await
         .map_err(|e| format!("Failed to parse device code response: {}", e))?;
     
-    let user_code = data["user_code"].as_str()
+    let user_code = data["user_code"].as_str().or_else(|| data["usercode"].as_str())
         .ok_or("Missing user_code in response")?
         .to_string();
     let device_auth_id = data["device_auth_id"].as_str()
         .ok_or("Missing device_auth_id in response")?
         .to_string();
-    let interval = data["interval"].as_u64().unwrap_or(5);
+    let interval = parse_interval(&data["interval"]);
     
     Ok(DeviceCode {
         user_code,
-        verification_url: "https://chatgpt.com/codex/device".to_string(),
+        verification_url: format!("{}/codex/device", OPENAI_AUTH_BASE_URL),
         device_auth_id,
         interval,
     })
@@ -900,7 +967,7 @@ pub async fn request_device_code() -> Result<DeviceCode, String> {
 #[tauri::command]
 pub async fn complete_device_code_login(device_code: DeviceCode) -> Result<String, String> {
     let client = reqwest::Client::new();
-    let auth_base_url = "https://auth.openai.com/api/accounts";
+    let auth_base_url = format!("{}/api/accounts", OPENAI_AUTH_BASE_URL);
     let max_wait = std::time::Duration::from_secs(15 * 60);
     let start = std::time::Instant::now();
     
@@ -913,6 +980,7 @@ pub async fn complete_device_code_login(device_code: DeviceCode) -> Result<Strin
         let response = client
             .post(format!("{}/deviceauth/token", auth_base_url))
             .header("Content-Type", "application/json")
+            .header("User-Agent", OPENAI_CODEX_UA)
             .json(&body)
             .send()
             .await
@@ -921,13 +989,51 @@ pub async fn complete_device_code_login(device_code: DeviceCode) -> Result<Strin
         let status = response.status();
         
         if status.is_success() {
-            let data: serde_json::Value = response.json().await
+            let data: serde_json::Value = response
+                .json()
+                .await
                 .map_err(|e| format!("Failed to parse token response: {}", e))?;
-            
-            let access_token = data["access_token"].as_str()
-                .ok_or("Missing access_token in response")?
+
+            let authorization_code = data["authorization_code"]
+                .as_str()
+                .ok_or("Missing authorization_code in response")?
                 .to_string();
-            
+            let code_verifier = data["code_verifier"]
+                .as_str()
+                .ok_or("Missing code_verifier in response")?
+                .to_string();
+
+            let token_response = client
+                .post(format!("{}/oauth/token", OPENAI_AUTH_BASE_URL))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .header("User-Agent", OPENAI_CODEX_UA)
+                .form(&[
+                    ("grant_type", "authorization_code"),
+                    ("code", authorization_code.as_str()),
+                    ("redirect_uri", OPENAI_CODEX_DEVICE_CALLBACK_URL),
+                    ("client_id", OPENAI_CODEX_CLIENT_ID),
+                    ("code_verifier", code_verifier.as_str()),
+                ])
+                .send()
+                .await
+                .map_err(|e| format!("Failed to exchange authorization code: {}", e))?;
+
+            if !token_response.status().is_success() {
+                let status = token_response.status();
+                let body_text = token_response.text().await.unwrap_or_default();
+                return Err(format!("Token exchange failed with status {}: {}", status, body_text));
+            }
+
+            let token_data: serde_json::Value = token_response
+                .json()
+                .await
+                .map_err(|e| format!("Failed to parse exchanged token response: {}", e))?;
+
+            let access_token = token_data["access_token"]
+                .as_str()
+                .ok_or("Missing access_token in exchanged token response")?
+                .to_string();
+
             return Ok(access_token);
         }
         
@@ -938,7 +1044,8 @@ pub async fn complete_device_code_login(device_code: DeviceCode) -> Result<Strin
             tokio::time::sleep(std::time::Duration::from_secs(device_code.interval)).await;
             continue;
         }
-        
-        return Err(format!("Device auth failed with status: {}", status));
+
+        let body_text = response.text().await.unwrap_or_default();
+        return Err(format!("Device auth failed with status {}: {}", status, body_text));
     }
 }

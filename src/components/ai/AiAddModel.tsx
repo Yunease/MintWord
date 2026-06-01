@@ -1,7 +1,15 @@
-import { useState, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ProviderAvatar } from '../ProviderAvatar';
 import { t } from '../../lib/i18n';
-import { getSetting, setSetting, testAiConfig, requestDeviceCode, completeDeviceCodeLogin } from '../../lib/api';
+import { open as openExternal } from '@tauri-apps/plugin-shell';
+import {
+  completeDeviceCodeLogin,
+  getChatgptLoginUrl,
+  getSetting,
+  requestDeviceCode,
+  setSetting,
+  testAiConfig,
+} from '../../lib/api';
 import { PROVIDERS, getProviderById, getEffectiveUrl, getFilteredModels, type AiProvider } from '../../lib/aiProviders';
 import type { ProviderConfig } from '../../types';
 import Select from '../Select';
@@ -50,9 +58,13 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
   
   // Device code login state
   const [deviceCode, setDeviceCode] = useState('');
+  const [deviceAuthId, setDeviceAuthId] = useState('');
   const [verificationUrl, setVerificationUrl] = useState('');
   const [isDeviceCodeLoading, setIsDeviceCodeLoading] = useState(false);
   const [deviceCodeError, setDeviceCodeError] = useState('');
+  const [chatgptLoginUrl, setChatgptLoginUrl] = useState('');
+  const [isChatgptLoginUrlLoading, setIsChatgptLoginUrlLoading] = useState(false);
+  const [copySuccess, setCopySuccess] = useState('');
 
   const [maxTokens, setMaxTokens] = useState('4096');
   const [temperature, setTemperature] = useState('0.7');
@@ -139,12 +151,39 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
 
   // Get current login method from sub-options
   const currentLoginMethod = subOptionValues['loginMethod'] || 'url';
+
+  useEffect(() => {
+    if (!copySuccess) return undefined;
+    const timer = setTimeout(() => setCopySuccess(''), 1200);
+    return () => clearTimeout(timer);
+  }, [copySuccess]);
+
+  async function ensureChatgptLoginUrl(): Promise<string> {
+    if (chatgptLoginUrl) return chatgptLoginUrl;
+    setIsChatgptLoginUrlLoading(true);
+    try {
+      const authUrl = await getChatgptLoginUrl();
+      setChatgptLoginUrl(authUrl);
+      return authUrl;
+    } finally {
+      setIsChatgptLoginUrlLoading(false);
+    }
+  }
+
+  async function copyText(text: string) {
+    await navigator.clipboard.writeText(text);
+    setCopySuccess(t('common.copied'));
+  }
   
   // Handle URL login - open external link
-  function handleUrlLogin() {
+  async function handleUrlLogin() {
     if (selectedProvider?.id === 'chatgpt-plus') {
-      // Open ChatGPT login page
-      window.open('https://chatgpt.com/auth/login', '_blank');
+      try {
+        const authUrl = await ensureChatgptLoginUrl();
+        await openExternal(authUrl);
+      } catch (error) {
+        setDeviceCodeError(`Failed to open login URL: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   }
 
@@ -155,6 +194,7 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
     setIsDeviceCodeLoading(true);
     setDeviceCodeError('');
     setDeviceCode('');
+    setDeviceAuthId('');
     setVerificationUrl('');
     
     try {
@@ -162,10 +202,11 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
       const result = await requestDeviceCode();
       if (result) {
         setDeviceCode(result.user_code);
+        setDeviceAuthId(result.device_auth_id);
         setVerificationUrl(result.verification_url);
       }
     } catch (error) {
-      setDeviceCodeError(`Failed to get device code: ${error}`);
+      setDeviceCodeError(`Failed to get device code: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsDeviceCodeLoading(false);
     }
@@ -176,17 +217,16 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
     if (!deviceCode) return;
     
     try {
-      await completeDeviceCodeLogin({
+      const accessToken = await completeDeviceCodeLogin({
         user_code: deviceCode,
         verification_url: verificationUrl,
-        device_auth_id: '',
+        device_auth_id: deviceAuthId,
         interval: 5
       });
-      // If successful, set a placeholder API key to indicate login success
-      setApiKey('device-code-authenticated');
+      setApiKey(accessToken);
       setTestResult(t('ai.device_code_success'));
     } catch (error) {
-      setDeviceCodeError(`Device code login failed: ${error}`);
+      setDeviceCodeError(`Device code login failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -376,15 +416,28 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
                     <p className="text-sm font-medium mb-2">{t('ai.login_url_title')}</p>
                     <div className="flex items-center gap-2">
                       <a
-                        href="https://chatgpt.com/auth/login"
+                        href={chatgptLoginUrl || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline text-sm flex-1 truncate"
+                        onClick={async (e) => {
+                          if (!chatgptLoginUrl) {
+                            e.preventDefault();
+                            await handleUrlLogin();
+                          }
+                        }}
                       >
-                        https://chatgpt.com/auth/login
+                        {chatgptLoginUrl || (isChatgptLoginUrlLoading ? '...' : t('ai.login_url_button'))}
                       </a>
                       <button
-                        onClick={() => navigator.clipboard.writeText('https://chatgpt.com/auth/login')}
+                        onClick={async () => {
+                          try {
+                            const authUrl = await ensureChatgptLoginUrl();
+                            await copyText(authUrl);
+                          } catch (error) {
+                            setDeviceCodeError(`Failed to copy login URL: ${error instanceof Error ? error.message : String(error)}`);
+                          }
+                        }}
                         className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500"
                       >
                         {t('common.copy')}
@@ -398,6 +451,9 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
                     {t('ai.login_url_button')}
                   </button>
                   <p className="text-xs text-gray-400">{t('ai.login_url_hint')}</p>
+                  {copySuccess && (
+                    <p className="text-xs text-green-600 mt-1">{copySuccess}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -423,7 +479,7 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
                           {deviceCode}
                         </code>
                         <button
-                          onClick={() => navigator.clipboard.writeText(deviceCode)}
+                          onClick={() => copyText(deviceCode)}
                           className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500"
                         >
                           {t('common.copy')}
@@ -453,6 +509,9 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
                 )}
                 {deviceCodeError && (
                   <p className="text-xs text-red-500 mt-1">{deviceCodeError}</p>
+                )}
+                {copySuccess && (
+                  <p className="text-xs text-green-600 mt-1">{copySuccess}</p>
                 )}
               </div>
             )}

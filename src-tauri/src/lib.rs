@@ -74,6 +74,7 @@ pub fn run() {
         })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             commands::get_decks,
             commands::create_deck,
@@ -114,6 +115,7 @@ pub fn run() {
             commands::set_ai_prompt,
             commands::generate_questions_with_config,
             commands::test_ai_config,
+            commands::get_chatgpt_login_url,
             commands::request_device_code,
             commands::complete_device_code_login,
         ])
