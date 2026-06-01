@@ -1,5 +1,14 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig } from '../types';
+
+const TAURI_AVAILABLE = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+
+function invoke<T = unknown>(cmd: string, args?: Record<string, unknown>, options?: unknown): Promise<T> {
+  if (!TAURI_AVAILABLE) {
+    return Promise.reject(new Error(`Tauri runtime not available (command: ${cmd})`));
+  }
+  return tauriInvoke<T>(cmd as never, args as never, options as never);
+}
 
 export async function getDecks(): Promise<Deck[]> {
   return invoke('get_decks');

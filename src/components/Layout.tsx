@@ -20,10 +20,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       if (savedDark === 'true') {
         document.documentElement.classList.add('dark');
-        try { localStorage.setItem('mintword_dark_mode', 'true'); } catch {}
+        try { localStorage.setItem('mintword_dark_mode', 'true'); } catch { /* localStorage may be unavailable */ }
       } else {
         document.documentElement.classList.remove('dark');
-        try { localStorage.setItem('mintword_dark_mode', 'false'); } catch {}
+        try { localStorage.setItem('mintword_dark_mode', 'false'); } catch { /* localStorage may be unavailable */ }
       }
 
       const theme = savedTheme || 'mint';
@@ -31,7 +31,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         .replace(/theme-\w+/g, '')
         .trim();
       document.documentElement.classList.add(`theme-${theme}`);
-      try { localStorage.setItem('mintword_theme', theme); } catch {}
+      try { localStorage.setItem('mintword_theme', theme); } catch { /* localStorage may be unavailable */ }
     })();
   }, []);
 

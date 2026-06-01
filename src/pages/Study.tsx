@@ -69,6 +69,8 @@ export default function Study() {
   const current = queue[0];
 
   useEffect(() => {
+    // Reset local card state when current card changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNotes(current?.notes || '');
     setPlayedTts(false);
     setUserInput('');
@@ -77,11 +79,15 @@ export default function Study() {
 
   useEffect(() => {
     if (!current || playedTts || flipped) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlayedTts(true);
     const timer = setTimeout(() => {
       speakCurrent();
     }, 200);
     return () => clearTimeout(timer);
+    // speakCurrent is intentionally excluded: it is recreated each render and
+    // including it would re-arm the TTS timer on every parent update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, flipped]);
 
   useEffect(() => {
@@ -92,6 +98,7 @@ export default function Study() {
 
   useEffect(() => {
     if (queue.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDone(true);
     }
   }, [queue]);
@@ -122,6 +129,9 @@ export default function Study() {
     }
     setResults(prev => [...prev, { card_id: current.id, front: current.front, back: current.back, rating, mastered }]);
     advance(rating < 2);
+    // advance is intentionally excluded: it only calls state setters and
+    // depends on `queue`; including it would force needless callback churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, notes]);
 
   const handleMastered = useCallback(async () => {
@@ -134,6 +144,7 @@ export default function Study() {
     }
     setResults(prev => [...prev, { card_id: current.id, front: current.front, back: current.back, rating, mastered }]);
     advance(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, notes]);
 
   function advance(requeue: boolean) {
@@ -194,6 +205,9 @@ export default function Study() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
+    // speakCurrent is intentionally excluded: it is recreated each render and
+    // does not need to retrigger listener re-registration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flipped, done, handleRating, handleMastered, cardModes, current]);
 
   if (isLoading) {

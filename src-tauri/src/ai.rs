@@ -161,6 +161,7 @@ impl Default for ApiMode {
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProviderConfig {
     pub provider_id: String,
     pub url: String,
