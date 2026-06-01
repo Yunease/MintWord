@@ -47,6 +47,12 @@ export default function DeckDetail() {
         </Link>
         <h1 className="text-xl font-bold flex-1">词库详情</h1>
         <Link
+          to={`/import?deckId=${encodeURIComponent(id ?? '')}`}
+          className="px-4 py-1.5 bg-primary-light text-primary-dark rounded-lg text-sm hover:bg-primary hover:text-white transition-colors"
+        >
+          {t('deck.import_csv')}
+        </Link>
+        <Link
           to={`/study/${id}`}
           className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
         >

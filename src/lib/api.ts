@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ImportReport } from '../types';
 
 export async function getDecks(): Promise<Deck[]> {
   return invoke('get_decks');
@@ -69,7 +69,7 @@ export async function getStats(): Promise<ReviewStats> {
   return invoke('get_stats');
 }
 
-export async function importCsvFile(deckId: string, filePath: string): Promise<number> {
+export async function importDeckFile(deckId: string, filePath: string): Promise<ImportReport> {
   return invoke('import_csv_file', { deckId, filePath });
 }
 

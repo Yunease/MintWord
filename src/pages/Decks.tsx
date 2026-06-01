@@ -62,12 +62,20 @@ export default function Decks() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{t('nav.decks')}</h1>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
-        >
-          + {t('deck.create')}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/import"
+            className="px-4 py-1.5 bg-primary-light text-primary-dark rounded-lg text-sm hover:bg-primary hover:text-white transition-colors"
+          >
+            {t('deck.import_csv')}
+          </Link>
+          <button
+            onClick={() => setShowCreate(!showCreate)}
+            className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
+          >
+            + {t('deck.create')}
+          </button>
+        </div>
       </div>
 
       {showCreate && (
@@ -146,6 +154,14 @@ export default function Decks() {
                 )}
               </Link>
               <div className="flex gap-2 ml-4 shrink-0">
+                {!deck.id.startsWith('builtin-') && (
+                  <Link
+                    to={`/import?deckId=${encodeURIComponent(deck.id)}`}
+                    className="px-3 py-1 bg-primary-light text-primary-dark rounded-md text-sm hover:bg-primary hover:text-white transition-colors"
+                  >
+                    {t('deck.import_csv')}
+                  </Link>
+                )}
                 {!isCurrent && (
                   <button
                     onClick={() => handleSetCurrent(deck.id)}
