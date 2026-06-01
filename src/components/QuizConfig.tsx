@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import Select from './Select';
+import TooltipIcon from './TooltipIcon';
 import { t } from '../lib/i18n';
 import {
   type QuizConfig,
   getDifficultyOptions,
-  buildPrompt,
   getDefaultTemplate,
 } from '../lib/quizPrompt';
 
@@ -23,7 +23,7 @@ function NumberStepper({
   max,
   onChange,
 }: {
-  label: string;
+  label: React.ReactNode;
   value: number;
   min: number;
   max: number;
@@ -73,8 +73,6 @@ function QuizConfigPanel({
     onChange({ ...config, ...partial });
   }
 
-  const preview = buildPrompt(config);
-
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -84,7 +82,12 @@ function QuizConfigPanel({
       </div>
 
       <Select
-        label={t('ai.quiz_difficulty')}
+        label={
+          <span>
+            {t('ai.quiz_difficulty')}
+            <TooltipIcon text={t('ai.quiz_difficulty_tip')} />
+          </span>
+        }
         value={config.difficulty}
         onChange={(val) => update({ difficulty: val })}
         options={difficultyOptions}
@@ -92,14 +95,24 @@ function QuizConfigPanel({
 
       <div className="grid grid-cols-2 gap-4">
         <NumberStepper
-          label={t('ai.quiz_question_count')}
+          label={
+            <span>
+              {t('ai.quiz_question_count')}
+              <TooltipIcon text={t('ai.quiz_question_count_tip')} />
+            </span>
+          }
           value={config.questionCount}
           min={1}
           max={10}
           onChange={(v) => update({ questionCount: v })}
         />
         <NumberStepper
-          label={t('ai.quiz_option_count')}
+          label={
+            <span>
+              {t('ai.quiz_option_count')}
+              <TooltipIcon text={t('ai.quiz_option_count_tip')} />
+            </span>
+          }
           value={config.optionCount}
           min={2}
           max={6}
@@ -120,8 +133,23 @@ function QuizConfigPanel({
         {expanded && (
           <div className="mt-3 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">
-                {'{difficulty}'} {'{questionCount}'} {'{optionCount}'} {'{optionLetters}'}
+              <span className="text-xs text-gray-400 flex items-center gap-2">
+                <span>
+                  {'{difficulty}'}
+                  <TooltipIcon text={t('ai.quiz_variable_difficulty')} />
+                </span>
+                <span>
+                  {'{questionCount}'}
+                  <TooltipIcon text={t('ai.quiz_variable_question_count')} />
+                </span>
+                <span>
+                  {'{optionCount}'}
+                  <TooltipIcon text={t('ai.quiz_variable_option_count')} />
+                </span>
+                <span>
+                  {'{optionLetters}'}
+                  <TooltipIcon text={t('ai.quiz_variable_option_letters')} />
+                </span>
               </span>
               <button
                 type="button"
@@ -134,20 +162,23 @@ function QuizConfigPanel({
               </button>
             </div>
             <textarea
-              value={expanded ? config.customPrompt : preview}
+              value={config.customPrompt ? config.customPrompt : getDefaultTemplate()}
               onChange={(e) => {
                 update({ customPrompt: e.target.value });
               }}
               rows={10}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
-              placeholder={getDefaultTemplate()}
             />
             <p className="text-xs text-gray-400">
               {t('ai.prompt_desc')}
             </p>
-            {config.customPrompt && (
+            {config.customPrompt ? (
               <p className="text-xs text-amber-600 dark:text-amber-400">
                 {t('ai.prompt_security_hint')}
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400">
+                {t('ai.prompt_edit_hint')}
               </p>
             )}
           </div>

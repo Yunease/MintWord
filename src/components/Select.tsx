@@ -9,7 +9,7 @@ interface SelectProps {
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
-  label?: string;
+  label?: React.ReactNode;
   placeholder?: string;
   className?: string;
   disabled?: boolean;

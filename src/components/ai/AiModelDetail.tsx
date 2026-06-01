@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ProviderAvatar } from '../ProviderAvatar';
+import TooltipIcon from '../TooltipIcon';
 import { t } from '../../lib/i18n';
 import { getSetting, setSetting, testAiConfig } from '../../lib/api';
 import { getProviderById, getEffectiveUrl, getFilteredModels } from '../../lib/aiProviders';
@@ -253,7 +254,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
         {/* URL */}
         {selectedProvider && (
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.url')}</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.url')}<TooltipIcon text={t('ai.url_tip')} /></label>
             {selectedProvider.urlEditable ? (
               <>
                 <input
@@ -289,7 +290,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
 
         {/* API Key */}
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.key')}</label>
+          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.key')}<TooltipIcon text={t('ai.key_tip')} /></label>
           <div className="relative">
             <input
               type={showKey ? 'text' : 'password'}
@@ -310,7 +311,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
         {/* Model ID */}
         {selectedProvider && (
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.model_id')}</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.model_id')}<TooltipIcon text={t('ai.model_id_tip')} /></label>
             {isPresetModel ? (
               <Select
                 value={modelId}
@@ -358,7 +359,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
         {/* Thinking Effort */}
         {selectedModel?.thinkingSupport && selectedModel.thinkingLevels && (
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.thinking_effort')}</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.thinking_effort')}<TooltipIcon text={t('ai.thinking_effort_tip')} /></label>
             <div className="flex gap-2 flex-wrap">
               {THINKING_LEVELS.filter((l) => l.id === 'off' || selectedModel.thinkingLevels?.includes(l.id)).map((level) => (
                 <button
@@ -397,7 +398,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
               <div className="mt-3 grid grid-cols-2 gap-3">
                 {supportedParams.includes('maxTokens') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.max_tokens')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.max_tokens')}<TooltipIcon text={t('ai.max_tokens_tip')} /></label>
                     <input
                       type="number"
                       value={maxTokens}
@@ -408,7 +409,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
                 )}
                 {supportedParams.includes('temperature') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.temperature')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.temperature')}<TooltipIcon text={t('ai.temperature_tip')} /></label>
                     <input
                       type="number"
                       step="0.1"
@@ -420,7 +421,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
                 )}
                 {supportedParams.includes('topP') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.top_p')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.top_p')}<TooltipIcon text={t('ai.top_p_tip')} /></label>
                     <input
                       type="number"
                       step="0.1"
@@ -432,7 +433,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
                 )}
                 {supportedParams.includes('topK') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.top_k')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.top_k')}<TooltipIcon text={t('ai.top_k_tip')} /></label>
                     <input
                       type="number"
                       value={topK}
@@ -443,7 +444,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
                 )}
                 {supportedParams.includes('frequencyPenalty') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.frequency_penalty')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.frequency_penalty')}<TooltipIcon text={t('ai.frequency_penalty_tip')} /></label>
                     <input
                       type="number"
                       step="0.1"
@@ -455,7 +456,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
                 )}
                 {supportedParams.includes('presencePenalty') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.presence_penalty')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.presence_penalty')}<TooltipIcon text={t('ai.presence_penalty_tip')} /></label>
                     <input
                       type="number"
                       step="0.1"
@@ -467,7 +468,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
                 )}
                 {supportedParams.includes('repetitionPenalty') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.repetition_penalty')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.repetition_penalty')}<TooltipIcon text={t('ai.repetition_penalty_tip')} /></label>
                     <input
                       type="number"
                       step="0.1"
@@ -479,7 +480,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
                 )}
                 {supportedParams.includes('thinkingBudget') && (
                   <div>
-                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.thinking_budget')}</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.thinking_budget')}<TooltipIcon text={t('ai.thinking_budget_tip')} /></label>
                     <input
                       type="number"
                       value={thinkingBudget}

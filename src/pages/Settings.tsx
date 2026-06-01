@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt, clearLearningProgress, clearReviewLogs, clearSettings, clearAllCache } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
+import ConfirmModal from '../components/ConfirmModal';
 import AiModelList from '../components/ai/AiModelList';
 import AiAddModel from '../components/ai/AiAddModel';
 import AiModelDetail from '../components/ai/AiModelDetail';
@@ -26,6 +27,7 @@ export default function Settings() {
   const [ttsModel, setTtsModel] = useState('tts-1');
   const [lang, setLangState] = useState<Lang>(getLang());
   const [saved, setSaved] = useState(false);
+  const [cacheCleared, setCacheCleared] = useState(false);
   const [theme, setTheme] = useState<Theme>('mint');
   const [darkMode, setDarkMode] = useState(false);
   const [dictationEnabled, setDictationEnabled] = useState(true);
@@ -39,6 +41,13 @@ export default function Settings() {
   const [aiView, setAiView] = useState<'list' | 'add' | 'detail'>('list');
   const [aiEditIndex, setAiEditIndex] = useState<number>(-1);
   const [quizConfig, setQuizConfig] = useState<QuizConfig>(DEFAULT_QUIZ_CONFIG);
+
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     getPlatform().then(setPlatform).catch(() => undefined);
@@ -548,14 +557,17 @@ export default function Settings() {
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_learning_progress_desc')}</div>
                 </div>
                 <button
-                  onClick={async () => {
-                    if (window.confirm(t('confirm.clear_learning_progress'))) {
+                  onClick={() => setConfirmModal({
+                    title: t('settings.clear_learning_progress'),
+                    message: t('confirm.clear_learning_progress'),
+                    confirmLabel: t('settings.clear_learning_progress'),
+                    onConfirm: async () => {
                       await clearLearningProgress();
-                      setSaved(true);
-                      setTimeout(() => setSaved(false), 2000);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 transition-colors"
+                      setCacheCleared(true);
+                      setTimeout(() => setCacheCleared(false), 2000);
+                    },
+                  })}
+                  className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   {t('settings.clear_learning_progress')}
                 </button>
@@ -569,14 +581,17 @@ export default function Settings() {
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_review_logs_desc')}</div>
                 </div>
                 <button
-                  onClick={async () => {
-                    if (window.confirm(t('confirm.clear_review_logs'))) {
+                  onClick={() => setConfirmModal({
+                    title: t('settings.clear_review_logs'),
+                    message: t('confirm.clear_review_logs'),
+                    confirmLabel: t('settings.clear_review_logs'),
+                    onConfirm: async () => {
                       await clearReviewLogs();
-                      setSaved(true);
-                      setTimeout(() => setSaved(false), 2000);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 transition-colors"
+                      setCacheCleared(true);
+                      setTimeout(() => setCacheCleared(false), 2000);
+                    },
+                  })}
+                  className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   {t('settings.clear_review_logs')}
                 </button>
@@ -590,14 +605,17 @@ export default function Settings() {
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_settings_desc')}</div>
                 </div>
                 <button
-                  onClick={async () => {
-                    if (window.confirm(t('confirm.clear_settings'))) {
+                  onClick={() => setConfirmModal({
+                    title: t('settings.clear_settings'),
+                    message: t('confirm.clear_settings'),
+                    confirmLabel: t('settings.clear_settings'),
+                    onConfirm: async () => {
                       await clearSettings();
-                      setSaved(true);
-                      setTimeout(() => setSaved(false), 2000);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600 transition-colors"
+                      setCacheCleared(true);
+                      setTimeout(() => setCacheCleared(false), 2000);
+                    },
+                  })}
+                  className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   {t('settings.clear_settings')}
                 </button>
@@ -607,18 +625,21 @@ export default function Settings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-red-600 dark:text-red-400">{t('settings.clear_all')}</div>
+                  <div className="text-sm font-medium">{t('settings.clear_all')}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.clear_all_desc')}</div>
                 </div>
                 <button
-                  onClick={async () => {
-                    if (window.confirm(t('confirm.clear_all'))) {
+                  onClick={() => setConfirmModal({
+                    title: t('settings.clear_all'),
+                    message: t('confirm.clear_all'),
+                    confirmLabel: t('settings.clear_all'),
+                    onConfirm: async () => {
                       await clearAllCache();
-                      setSaved(true);
-                      setTimeout(() => setSaved(false), 2000);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 transition-colors"
+                      setCacheCleared(true);
+                      setTimeout(() => setCacheCleared(false), 2000);
+                    },
+                  })}
+                  className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   {t('settings.clear_all')}
                 </button>
@@ -665,11 +686,29 @@ export default function Settings() {
         )}
 
         {saved && (
-          <div className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg">
+          <div className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg z-40">
+            {t('toast.saved')}
+          </div>
+        )}
+        {cacheCleared && (
+          <div className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg z-40">
             {t('toast.cache_cleared')}
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmModal !== null}
+        title={confirmModal?.title ?? ''}
+        message={confirmModal?.message ?? ''}
+        confirmLabel={confirmModal?.confirmLabel ?? ''}
+        confirmDanger
+        onConfirm={() => {
+          confirmModal?.onConfirm();
+          setConfirmModal(null);
+        }}
+        onCancel={() => setConfirmModal(null)}
+      />
     </div>
   );
 }
