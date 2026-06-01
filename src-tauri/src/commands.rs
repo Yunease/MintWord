@@ -825,3 +825,25 @@ pub fn set_ai_prompt(db: State<Database>, prompt: String) -> Result<(), String> 
     ).map_err(|e| e.to_string())?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn generate_questions_with_config(
+    db: State<'_, Database>,
+    article_id: String,
+    config: ai::ProviderConfig,
+) -> Result<Vec<ai::Question>, String> {
+    let article = library::get_article(&db.app_dir, &article_id)?;
+    let prompt = get_custom_prompt(&db)?;
+    let response = ai::chat_with_provider(&config, &prompt, &article.content).await?;
+    ai::parse_questions(&response.content)
+}
+
+#[tauri::command]
+pub async fn test_ai_config(config: ai::ProviderConfig) -> Result<String, String> {
+    let response = ai::chat_with_provider(&config, "You are a helpful assistant.", "Reply with just: OK").await?;
+    if response.content.to_uppercase().contains("OK") {
+        Ok("连接成功".to_string())
+    } else {
+        Err(format!("Unexpected response: {}", response.content))
+    }
+}

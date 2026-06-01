@@ -1,4 +1,5 @@
 use regex::Regex;
+use serde_json::json;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct Question {
@@ -142,4 +143,409 @@ pub fn parse_questions(text: &str) -> Result<Vec<Question>, String> {
     }
 
     Ok(questions)
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApiMode {
+    ChatCompletions,
+    AnthropicMessages,
+    OpenaiResponses,
+    GeminiNative,
+}
+
+impl Default for ApiMode {
+    fn default() -> Self {
+        ApiMode::ChatCompletions
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct ProviderConfig {
+    pub provider_id: String,
+    pub url: String,
+    pub api_key: String,
+    pub model_id: String,
+    #[serde(default)]
+    pub api_mode: ApiMode,
+    #[serde(default)]
+    pub thinking_effort: Option<String>,
+    #[serde(default)]
+    pub thinking_pattern: Option<String>,
+    #[serde(default)]
+    pub max_tokens: Option<u32>,
+    #[serde(default)]
+    pub temperature: Option<f32>,
+    #[serde(default)]
+    pub top_p: Option<f32>,
+    #[serde(default)]
+    pub top_k: Option<u32>,
+    #[serde(default)]
+    pub frequency_penalty: Option<f32>,
+    #[serde(default)]
+    pub presence_penalty: Option<f32>,
+    #[serde(default)]
+    pub repetition_penalty: Option<f32>,
+    #[serde(default)]
+    pub thinking_budget: Option<u32>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ChatResponse {
+    pub content: String,
+    pub reasoning: Option<String>,
+}
+
+impl ChatResponse {
+    pub fn text(content: String) -> Self {
+        Self { content, reasoning: None }
+    }
+}
+
+pub async fn chat_with_provider(
+    config: &ProviderConfig,
+    system_prompt: &str,
+    user_content: &str,
+) -> Result<ChatResponse, String> {
+    let client = reqwest::Client::new();
+
+    let (url, headers, body) = match config.api_mode {
+        ApiMode::ChatCompletions => build_chat_completions(config, system_prompt, user_content),
+        ApiMode::AnthropicMessages => build_anthropic_messages(config, system_prompt, user_content),
+        ApiMode::OpenaiResponses => build_openai_responses(config, system_prompt, user_content),
+        ApiMode::GeminiNative => build_gemini_native(config, system_prompt, user_content),
+    };
+
+    let mut req = client.post(&url)
+        .header("Content-Type", "application/json");
+
+    for (k, v) in &headers {
+        req = req.header(k, v);
+    }
+
+    let resp = req.json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("API error {}: {}", status, text));
+    }
+
+    let resp_json: serde_json::Value = resp.json().await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    extract_response_content(&config.api_mode, &resp_json)
+}
+
+fn build_chat_completions(config: &ProviderConfig, system: &str, user: &str) -> (String, Vec<(String, String)>, serde_json::Value) {
+    let url = format!("{}/chat/completions", config.url.trim_end_matches('/'));
+    let headers = vec![
+        ("Authorization".to_string(), format!("Bearer {}", config.api_key)),
+    ];
+
+    let mut body = json!({
+        "model": config.model_id,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user}
+        ]
+    });
+
+    if let Some(mt) = config.max_tokens { body["max_tokens"] = json!(mt); }
+    if let Some(t) = config.temperature { body["temperature"] = json!(t); }
+    if let Some(tp) = config.top_p { body["top_p"] = json!(tp); }
+    if let Some(tk) = config.top_k { body["top_k"] = json!(tk); }
+    if let Some(fp) = config.frequency_penalty { body["frequency_penalty"] = json!(fp); }
+    if let Some(pp) = config.presence_penalty { body["presence_penalty"] = json!(pp); }
+    if let Some(rp) = config.repetition_penalty { body["repetition_penalty"] = json!(rp); }
+
+    apply_thinking_chat(&mut body, config);
+
+    (url, headers, body)
+}
+
+fn build_anthropic_messages(config: &ProviderConfig, system: &str, user: &str) -> (String, Vec<(String, String)>, serde_json::Value) {
+    let url = format!("{}/messages", config.url.trim_end_matches('/'));
+    let headers = vec![
+        ("x-api-key".to_string(), config.api_key.clone()),
+        ("anthropic-version".to_string(), "2023-06-01".to_string()),
+    ];
+
+    let mut body = json!({
+        "model": config.model_id,
+        "max_tokens": config.max_tokens.unwrap_or(4096),
+        "system": system,
+        "messages": [
+            {"role": "user", "content": user}
+        ]
+    });
+
+    if let Some(t) = config.temperature { body["temperature"] = json!(t); }
+    if let Some(tp) = config.top_p { body["top_p"] = json!(tp); }
+    if let Some(tk) = config.top_k { body["top_k"] = json!(tk); }
+
+    apply_thinking_anthropic(&mut body, config);
+
+    (url, headers, body)
+}
+
+fn build_openai_responses(config: &ProviderConfig, _system: &str, user: &str) -> (String, Vec<(String, String)>, serde_json::Value) {
+    let url = format!("{}/responses", config.url.trim_end_matches('/'));
+    let headers = vec![
+        ("Authorization".to_string(), format!("Bearer {}", config.api_key)),
+    ];
+
+    let mut body = json!({
+        "model": config.model_id,
+        "input": user,
+        "stream": false
+    });
+
+    if let Some(mt) = config.max_tokens { body["max_tokens"] = json!(mt); }
+
+    if let Some(ref effort) = config.thinking_effort {
+        if effort != "off" {
+            body["reasoning"] = json!({"effort": effort, "summary": "auto"});
+        }
+    }
+
+    (url, headers, body)
+}
+
+fn build_gemini_native(config: &ProviderConfig, system: &str, user: &str) -> (String, Vec<(String, String)>, serde_json::Value) {
+    let url = format!(
+        "{}/models/{}:generateContent?key={}",
+        config.url.trim_end_matches('/'),
+        config.model_id,
+        config.api_key
+    );
+    let headers = vec![];
+
+    let mut body = json!({
+        "contents": [
+            {"role": "user", "parts": [{"text": format!("{}\n\n{}", system, user)}]}
+        ]
+    });
+
+    let mut gen_config = json!({});
+    if let Some(mt) = config.max_tokens { gen_config["maxOutputTokens"] = json!(mt); }
+    if let Some(t) = config.temperature { gen_config["temperature"] = json!(t); }
+    if let Some(tp) = config.top_p { gen_config["topP"] = json!(tp); }
+    if let Some(tk) = config.top_k { gen_config["topK"] = json!(tk); }
+
+    apply_thinking_gemini(&mut gen_config, config);
+
+    if gen_config != json!({}) {
+        body["generationConfig"] = gen_config;
+    }
+
+    (url, headers, body)
+}
+
+fn apply_thinking_chat(body: &mut serde_json::Value, config: &ProviderConfig) {
+    if let Some(ref effort) = config.thinking_effort {
+        match config.provider_id.as_str() {
+            "deepseek" | "kimi" | "kimi-coding" => {
+                if effort == "off" {
+                    body["thinking"] = json!({"type": "disabled"});
+                } else {
+                    body["thinking"] = json!({"type": "enabled"});
+                    body["reasoning_effort"] = json!(effort);
+                }
+            }
+            "zhipu" | "zhipu-coding" | "zai" | "zai-coding" => {
+                if effort == "off" {
+                    body["thinking"] = json!({"type": "disabled"});
+                } else {
+                    body["thinking"] = json!({"type": "enabled"});
+                }
+            }
+            "alibaba-cn" | "alibaba-intl" => {
+                body["enable_thinking"] = json!(effort != "off");
+            }
+            "siliconflow-cn" | "siliconflow-intl" => {
+                body["enable_thinking"] = json!(effort != "off");
+            }
+            "stepfun" | "stepfun-intl" => {
+                if effort != "off" {
+                    body["reasoning_effort"] = json!(effort);
+                }
+            }
+            "tencent" | "tencent-intl" => {}
+            "minimax" | "minimax-coding" => {
+                if effort != "off" {
+                    body["reasoning_split"] = json!(true);
+                }
+            }
+            _ => {
+                if effort != "off" {
+                    body["reasoning_effort"] = json!(effort);
+                }
+            }
+        }
+    }
+}
+
+fn apply_thinking_anthropic(body: &mut serde_json::Value, config: &ProviderConfig) {
+    if let Some(ref effort) = config.thinking_effort {
+        if effort == "off" {
+            return;
+        }
+        if config.model_id.contains("4-7") || config.model_id.contains("4-8") {
+            body["thinking"] = json!({
+                "type": "adaptive"
+            });
+        } else {
+            let budget = config.thinking_budget.unwrap_or(8000);
+            body["thinking"] = json!({
+                "type": "enabled",
+                "budget_tokens": budget
+            });
+        }
+    }
+}
+
+fn apply_thinking_gemini(gen_config: &mut serde_json::Value, config: &ProviderConfig) {
+    if let Some(ref effort) = config.thinking_effort {
+        if effort == "off" {
+            gen_config["thinkingConfig"] = json!({"includeThoughts": false});
+        } else {
+            if config.model_id.contains("gemini-3") || config.model_id.contains("gemini-3.1") {
+                gen_config["thinkingConfig"] = json!({
+                    "includeThoughts": true,
+                    "thinkingLevel": effort.to_uppercase()
+                });
+            } else {
+                let budget = config.thinking_budget.unwrap_or(8192);
+                gen_config["thinkingConfig"] = json!({
+                    "includeThoughts": true,
+                    "thinkingBudget": budget
+                });
+            }
+        }
+    }
+}
+
+fn extract_response_content(api_mode: &ApiMode, resp: &serde_json::Value) -> Result<ChatResponse, String> {
+    match api_mode {
+        ApiMode::ChatCompletions => {
+            if let Some(choices) = resp.get("choices").and_then(|c| c.as_array()) {
+                if let Some(first) = choices.first() {
+                    if let Some(message) = first.get("message") {
+                        let content = message.get("content")
+                            .and_then(|c| c.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let reasoning = message.get("reasoning_content")
+                            .and_then(|r| r.as_str())
+                            .map(|s| s.to_string())
+                            .or_else(|| message.get("reasoning").and_then(|r| r.as_str()).map(|s| s.to_string()));
+                        if !content.is_empty() || reasoning.is_some() {
+                            return Ok(ChatResponse { content, reasoning });
+                        }
+                    }
+                }
+            }
+            Err(format!("Could not extract content from response: {}", serde_json::to_string(resp).unwrap_or_default()))
+        }
+        ApiMode::OpenaiResponses => {
+            if let Some(output) = resp.get("output").and_then(|o| o.as_array()) {
+                let mut text = String::new();
+                let mut reasoning = String::new();
+                for item in output {
+                    let item_type = item.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                    match item_type {
+                        "message" => {
+                            if let Some(content_arr) = item.get("content").and_then(|c| c.as_array()) {
+                                for c in content_arr {
+                                    if c.get("type").and_then(|t| t.as_str()) == Some("output_text") {
+                                        if let Some(t) = c.get("text").and_then(|t| t.as_str()) {
+                                            text.push_str(t);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "reasoning" => {
+                            if let Some(summary_arr) = item.get("summary").and_then(|s| s.as_array()) {
+                                for s in summary_arr {
+                                    if let Some(t) = s.get("text").and_then(|t| t.as_str()) {
+                                        reasoning.push_str(t);
+                                        reasoning.push('\n');
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                if !text.is_empty() || !reasoning.is_empty() {
+                    return Ok(ChatResponse {
+                        content: text,
+                        reasoning: if reasoning.is_empty() { None } else { Some(reasoning) },
+                    });
+                }
+            }
+            Err(format!("Could not extract content from OpenAI responses: {}", serde_json::to_string(resp).unwrap_or_default()))
+        }
+        ApiMode::AnthropicMessages => {
+            if let Some(content) = resp.get("content").and_then(|c| c.as_array()) {
+                let mut text = String::new();
+                let mut reasoning = String::new();
+                for block in content {
+                    let block_type = block.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                    match block_type {
+                        "text" => {
+                            if let Some(t) = block.get("text").and_then(|t| t.as_str()) {
+                                text.push_str(t);
+                            }
+                        }
+                        "thinking" => {
+                            if let Some(t) = block.get("thinking").and_then(|t| t.as_str()) {
+                                reasoning.push_str(t);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                if !text.is_empty() || !reasoning.is_empty() {
+                    return Ok(ChatResponse {
+                        content: text,
+                        reasoning: if reasoning.is_empty() { None } else { Some(reasoning) },
+                    });
+                }
+            }
+            Err("Could not extract content from Anthropic response".to_string())
+        }
+        ApiMode::GeminiNative => {
+            if let Some(candidates) = resp.get("candidates").and_then(|c| c.as_array()) {
+                if let Some(first) = candidates.first() {
+                    if let Some(parts) = first.get("content").and_then(|c| c.get("parts")).and_then(|p| p.as_array()) {
+                        let mut text = String::new();
+                        let mut reasoning = String::new();
+                        for part in parts {
+                            let is_thought = part.get("thought").and_then(|t| t.as_bool()).unwrap_or(false);
+                            if let Some(t) = part.get("text").and_then(|t| t.as_str()) {
+                                if is_thought {
+                                    reasoning.push_str(t);
+                                } else {
+                                    text.push_str(t);
+                                }
+                            }
+                        }
+                        if !text.is_empty() || !reasoning.is_empty() {
+                            return Ok(ChatResponse {
+                                content: text,
+                                reasoning: if reasoning.is_empty() { None } else { Some(reasoning) },
+                            });
+                        }
+                    }
+                }
+            }
+            Err("Could not extract content from Gemini response".to_string())
+        }
+    }
 }
