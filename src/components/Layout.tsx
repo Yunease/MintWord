@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { t, setLang, type Lang } from '../lib/i18n';
-import { useEffect } from 'react';
+import { t, setLang, getLang, subscribeLang, type Lang } from '../lib/i18n';
+import { useEffect, useSyncExternalStore } from 'react';
 import { getSetting } from '../lib/api';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  useSyncExternalStore(subscribeLang, getLang);
+
   useEffect(() => {
     (async () => {
       const [savedDark, savedTheme, savedLang] = await Promise.all([

@@ -199,11 +199,12 @@ const messages: Record<Lang, Record<string, string>> = {
     'ai.repetition_penalty': 'Repetition Penalty',
     'ai.thinking_budget': 'Thinking Budget',
     'ai.filter_all': '全部',
-    'ai.filter_api': 'API 接入',
+    'ai.filter_api': '按量计费 API',
     'ai.filter_mainland': '中国大陆',
     'ai.filter_aggregator': '聚合平台',
     'ai.filter_coding_plan': '编码计划',
     'ai.model_list': '模型列表',
+    'ai.added_models': '已添加的模型',
     'ai.add_model': '添加模型',
     'ai.edit_model': '编辑模型',
     'ai.delete_model': '删除模型',
@@ -529,11 +530,12 @@ const messages: Record<Lang, Record<string, string>> = {
     'ai.repetition_penalty': 'Repetition Penalty',
     'ai.thinking_budget': 'Thinking Budget',
     'ai.filter_all': '全部',
-    'ai.filter_api': 'API 接入',
+    'ai.filter_api': '按量計費 API',
     'ai.filter_mainland': '中國大陸',
     'ai.filter_aggregator': '聚合平台',
     'ai.filter_coding_plan': '編碼計畫',
     'ai.model_list': '模型列表',
+    'ai.added_models': '已新增的模型',
     'ai.add_model': '新增模型',
     'ai.edit_model': '編輯模型',
     'ai.delete_model': '刪除模型',
@@ -867,6 +869,7 @@ const messages: Record<Lang, Record<string, string>> = {
     'ai.filter_aggregator': 'Aggregator',
     'ai.filter_coding_plan': 'Coding Plan',
     'ai.model_list': 'Model List',
+    'ai.added_models': 'Added Models',
     'ai.add_model': 'Add Model',
     'ai.edit_model': 'Edit Model',
     'ai.delete_model': 'Delete Model',
@@ -1000,13 +1003,20 @@ const messages: Record<Lang, Record<string, string>> = {
 };
 
 let currentLang: Lang = 'zh';
+const listeners = new Set<() => void>();
 
 export function setLang(lang: Lang) {
   currentLang = lang;
+  listeners.forEach((fn) => fn());
 }
 
 export function getLang(): Lang {
   return currentLang;
+}
+
+export function subscribeLang(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
 }
 
 export function t(key: string, params?: Record<string, string | number>): string {

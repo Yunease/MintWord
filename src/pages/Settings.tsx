@@ -349,44 +349,57 @@ export default function Settings() {
           <section className="space-y-4">
             {aiView === 'list' && (
               <>
-                <AiModelList
-                  onAddModel={() => setAiView('add')}
-                  onEditModel={(idx) => { setAiEditIndex(idx); setAiView('detail'); }}
-                />
-                <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs text-gray-500 dark:text-gray-400">{t('ai.prompt')}</label>
+                <section className="space-y-4">
+                  <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    {t('ai.added_models')}
+                  </h2>
+                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4">
+                    <AiModelList
+                      onAddModel={() => setAiView('add')}
+                      onEditModel={(idx) => { setAiEditIndex(idx); setAiView('detail'); }}
+                    />
+                  </div>
+                </section>
+
+                <section className="space-y-4">
+                  <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    {t('ai.prompt')}
+                  </h2>
+                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">{t('ai.prompt')}</label>
+                      <button
+                        onClick={async () => {
+                          setAiPromptState('');
+                          await setAiPrompt('');
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {t('ai.prompt_reset')}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400">{t('ai.prompt_desc')}</p>
+                    <textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPromptState(e.target.value)}
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
+                    />
                     <button
                       onClick={async () => {
-                        setAiPromptState('');
-                        await setAiPrompt('');
+                        if (aiPrompt.trim()) {
+                          await setAiPrompt(aiPrompt);
+                          setSaved(true);
+                          setTimeout(() => setSaved(false), 2000);
+                        }
                       }}
-                      className="text-xs text-primary hover:underline"
+                      disabled={!aiPrompt.trim()}
+                      className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
                     >
-                      {t('ai.prompt_reset')}
+                      {t('common.save')}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400">{t('ai.prompt_desc')}</p>
-                  <textarea
-                    value={aiPrompt}
-                    onChange={(e) => setAiPromptState(e.target.value)}
-                    rows={8}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (aiPrompt.trim()) {
-                        await setAiPrompt(aiPrompt);
-                        setSaved(true);
-                        setTimeout(() => setSaved(false), 2000);
-                      }
-                    }}
-                    disabled={!aiPrompt.trim()}
-                    className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
-                  >
-                    {t('common.save')}
-                  </button>
-                </div>
+                </section>
               </>
             )}
             {aiView === 'add' && (
