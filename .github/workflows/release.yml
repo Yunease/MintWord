@@ -22,10 +22,15 @@ jobs:
             target: aarch64-apple-darwin
             bundles: dmg
 
+          - name: macOS Intel
+            runner: macos-latest
+            target: x86_64-apple-darwin
+            bundles: dmg
+
           - name: Windows x86_64
             runner: windows-latest
             target: x86_64-pc-windows-msvc
-            bundles: nsis
+            bundles: nsis,msi
 
           - name: Linux x86_64
             runner: ubuntu-22.04
@@ -68,6 +73,7 @@ jobs:
             librsvg2-dev \
             patchelf \
             libssl-dev \
+            libasound2-dev \
             libayatana-appindicator3-dev
 
       - name: Install frontend dependencies
@@ -86,7 +92,8 @@ jobs:
             | Platform | File |
             |----------|------|
             | macOS Apple Silicon | `.dmg` |
-            | Windows x86_64 | `.exe` (NSIS) |
+            | macOS Intel | `.dmg` |
+            | Windows x86_64 | `.exe` (NSIS), `.msi` |
             | Linux x86_64 | `.AppImage` |
             | Linux ARM64 | `.AppImage` |
           releaseDraft: true
