@@ -86,3 +86,22 @@ export interface Question {
   options: string[];
   answer: number;
 }
+
+export interface ProviderConfig {
+  providerId: string;
+  url: string;
+  apiKey: string;
+  modelId: string;
+  modelName: string;
+  apiMode: 'chat_completions' | 'anthropic_messages' | 'openai_responses' | 'gemini_native';
+  thinkingEffort?: string;
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  repetitionPenalty?: number;
+  thinkingBudget?: number;
+  subOptionValues?: Record<string, string>;
+}
