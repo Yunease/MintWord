@@ -14,6 +14,7 @@ const FILTER_TABS: { id: FilterTab; labelKey: string }[] = [
   { id: 'mainland', labelKey: 'ai.filter_mainland' },
   { id: 'aggregator', labelKey: 'ai.filter_aggregator' },
   { id: 'coding-plan', labelKey: 'ai.filter_coding_plan' },
+  { id: 'custom', labelKey: 'ai.filter_custom' },
 ];
 
 interface AiModelListProps {
@@ -85,15 +86,15 @@ export default function AiModelList({ onAddModel, onEditModel }: AiModelListProp
         </button>
       </div>
 
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex gap-2">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveFilter(tab.id)}
-            className={`px-3 py-2 text-sm transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
               activeFilter === tab.id
-                ? 'border-primary text-primary font-medium'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'bg-primary text-white'
+                : 'bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700'
             }`}
           >
             {t(tab.labelKey)}

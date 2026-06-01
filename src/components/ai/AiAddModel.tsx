@@ -14,7 +14,7 @@ import { PROVIDERS, getProviderById, getEffectiveUrl, getFilteredModels, type Ai
 import type { ProviderConfig } from '../../types';
 import Select from '../Select';
 
-type FilterTab = 'all' | 'api' | 'mainland' | 'aggregator' | 'coding-plan';
+type FilterTab = 'all' | 'api' | 'mainland' | 'aggregator' | 'coding-plan' | 'custom';
 
 const FILTER_TABS: { id: FilterTab; labelKey: string }[] = [
   { id: 'all', labelKey: 'ai.filter_all' },
@@ -22,6 +22,7 @@ const FILTER_TABS: { id: FilterTab; labelKey: string }[] = [
   { id: 'mainland', labelKey: 'ai.filter_mainland' },
   { id: 'aggregator', labelKey: 'ai.filter_aggregator' },
   { id: 'coding-plan', labelKey: 'ai.filter_coding_plan' },
+  { id: 'custom', labelKey: 'ai.filter_custom' },
 ];
 
 const THINKING_LEVELS: { id: string; labelKey: string }[] = [
@@ -231,13 +232,19 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
   }
 
   async function handleSave() {
+    // Determine apiMode based on provider and sub-options
+    let apiMode = selectedProvider?.apiMode ?? 'chat_completions';
+    if (selectedProvider?.id === 'fully-custom' && subOptionValues['apiMode'] === 'anthropic') {
+      apiMode = 'anthropic_messages';
+    }
+
     const config: ProviderConfig = {
       providerId,
       url: url || selectedProvider?.baseUrl || '',
       apiKey,
       modelId: effectiveModelId,
       modelName: modelName || effectiveModelId,
-      apiMode: selectedProvider?.apiMode ?? 'chat_completions',
+      apiMode,
     };
     if (thinkingEffort !== 'off') config.thinkingEffort = thinkingEffort;
     if (supportedParams.includes('maxTokens') && maxTokens) config.maxTokens = parseInt(maxTokens, 10);
@@ -264,13 +271,20 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
     if (!apiKey) return;
     setTesting(true);
     setTestResult('');
+
+    // Determine apiMode based on provider and sub-options
+    let apiMode = selectedProvider?.apiMode ?? 'chat_completions';
+    if (selectedProvider?.id === 'fully-custom' && subOptionValues['apiMode'] === 'anthropic') {
+      apiMode = 'anthropic_messages';
+    }
+
     const config: ProviderConfig = {
       providerId,
       url: url || selectedProvider?.baseUrl || '',
       apiKey,
       modelId: effectiveModelId,
       modelName: modelName || effectiveModelId,
-      apiMode: selectedProvider?.apiMode ?? 'chat_completions',
+      apiMode,
     };
     try {
       const result = await testAiConfig(config);
@@ -324,10 +338,10 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
                     <button
                       key={tab.id}
                       onClick={() => setActiveFilter(tab.id)}
-                      className={`px-2 py-1 text-xs whitespace-nowrap rounded transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                         activeFilter === tab.id
-                          ? 'bg-primary-light text-primary-dark font-medium'
-                          : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700'
                       }`}
                     >
                       {t(tab.labelKey)}
@@ -379,7 +393,11 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
                   placeholder={selectedProvider.baseUrl}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <p className="text-xs text-gray-400 mt-1">{t(selectedProvider.apiMode === 'anthropic_messages' ? 'ai.url_hint_anthropic' : 'ai.url_hint_openai')}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {selectedProvider.id === 'fully-custom'
+                    ? t('ai.url_hint_fully_custom')
+                    : t(selectedProvider.apiMode === 'anthropic_messages' ? 'ai.url_hint_anthropic' : 'ai.url_hint_openai')}
+                </p>
               </>
             ) : (
               <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800/50 text-sm text-gray-600 dark:text-gray-400">

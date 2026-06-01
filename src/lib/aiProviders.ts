@@ -9,7 +9,7 @@ export type ThinkingPattern =
   | 'adaptive'
   | 'builtin';
 
-export type ProviderCategory = 'api' | 'mainland' | 'aggregator' | 'coding-plan';
+export type ProviderCategory = 'api' | 'mainland' | 'aggregator' | 'coding-plan' | 'custom';
 
 export type SupportedParam =
   | 'maxTokens'
@@ -116,7 +116,7 @@ export const PROVIDERS: AiProvider[] = [
     baseUrl: '',
     apiMode: 'chat_completions',
     urlEditable: true,
-    categories: ['api'],
+    categories: ['api', 'custom'],
     models: [],
     notesKey: 'ai.p.notes.customUrl',
   },
@@ -257,9 +257,34 @@ export const PROVIDERS: AiProvider[] = [
     baseUrl: '',
     apiMode: 'anthropic_messages',
     urlEditable: true,
-    categories: ['api'],
+    categories: ['api', 'custom'],
     models: [],
     notesKey: 'ai.p.notes.customUrl',
+  },
+
+  // ─── Fully Custom (完全自定义) ──────────────────────────────────────────
+  {
+    id: 'fully-custom',
+    displayNameKey: 'ai.p.fully-custom',
+    iconKey: 'custom',
+    baseUrl: '',
+    apiMode: 'chat_completions',
+    urlEditable: true,
+    categories: ['custom'],
+    models: [],
+    notesKey: 'ai.p.notes.fullyCustom',
+    subOptions: [
+      {
+        id: 'apiMode',
+        labelKey: 'ai.sub.apiMode',
+        options: [
+          { value: 'openai', labelKey: 'ai.sub.apiMode.openai' },
+          { value: 'anthropic', labelKey: 'ai.sub.apiMode.anthropic' },
+        ],
+        defaultValue: 'openai',
+        affectsUrl: false,
+      },
+    ],
   },
 
   // ─── Google Gemini ─────────────────────────────────────────────────────
