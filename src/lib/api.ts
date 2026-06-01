@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig } from '../types';
 
 export async function getDecks(): Promise<Deck[]> {
   return invoke('get_decks');
@@ -123,7 +123,7 @@ export async function importArticleTxt(filePath: string): Promise<Article> {
   return invoke('import_article_txt', { filePath });
 }
 
-// === AI Quiz ===
+// === AI Quiz (legacy — kept for backward compatibility) ===
 
 export async function generateQuestions(articleId: string, apiUrl: string, apiKey: string, model: string): Promise<Question[]> {
   return invoke('generate_questions', { articleId, apiUrl, apiKey, model });
@@ -139,6 +139,24 @@ export async function getArticleQuestions(articleId: string): Promise<Question[]
 
 export async function testAiApi(apiUrl: string, apiKey: string, model: string): Promise<string> {
   return invoke('test_ai_api', { apiUrl, apiKey, model });
+}
+
+// === AI Quiz (multi-provider) ===
+
+export async function generateQuestionsWithConfig(articleId: string, config: ProviderConfig): Promise<Question[]> {
+  return invoke('generate_questions_with_config', { articleId, config });
+}
+
+export async function testAiConfig(config: ProviderConfig): Promise<string> {
+  return invoke('test_ai_config', { config });
+}
+
+export async function getAiProviderConfig(): Promise<string | null> {
+  return getSetting('ai_provider_config');
+}
+
+export async function setAiProviderConfig(configJson: string): Promise<void> {
+  return setSetting('ai_provider_config', configJson);
 }
 
 export async function getAiPrompt(): Promise<string> {
