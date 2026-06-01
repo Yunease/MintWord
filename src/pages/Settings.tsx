@@ -23,6 +23,11 @@ export default function Settings() {
   const [theme, setTheme] = useState<Theme>('mint');
   const [darkMode, setDarkMode] = useState(false);
   const [dictationEnabled, setDictationEnabled] = useState(true);
+  const [algorithm, setAlgorithm] = useState('sm2');
+  const [fsrsRetention, setFsrsRetention] = useState('0.90');
+  const [fsrsMaxInterval, setFsrsMaxInterval] = useState('36500');
+  const [fsrsParams, setFsrsParams] = useState('');
+  const [showFsrsAdvanced, setShowFsrsAdvanced] = useState(false);
   const [platform, setPlatform] = useState('unknown');
 
   const [aiUrl, setAiUrl] = useState('');
@@ -68,6 +73,16 @@ export default function Settings() {
       if (savedDictation === 'false') {
         setDictationEnabled(false);
       }
+      const savedAlgorithm = await getSetting('learning_mode');
+      if (savedAlgorithm === 'fsrs') {
+        setAlgorithm(savedAlgorithm);
+      }
+      const savedRetention = await getSetting('fsrs_retention');
+      if (savedRetention) setFsrsRetention(savedRetention);
+      const savedMaxInterval = await getSetting('fsrs_max_interval');
+      if (savedMaxInterval) setFsrsMaxInterval(savedMaxInterval);
+      const savedParams = await getSetting('fsrs_parameters');
+      if (savedParams) setFsrsParams(savedParams);
     })();
   }, []);
 
@@ -206,12 +221,19 @@ export default function Settings() {
                 ))}
               </div>
               <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={darkMode}
-                  onChange={(e) => handleDarkMode(e.target.checked)}
-                  className="w-4 h-4 rounded accent-primary"
-                />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={darkMode}
+                  onClick={() => handleDarkMode(!darkMode)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
+                    darkMode ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                    darkMode ? 'translate-x-5' : 'translate-x-0.5'
+                  }`} />
+                </button>
                 <span className="text-sm">{t('settings.dark_mode')}</span>
               </label>
             </section>
@@ -456,23 +478,133 @@ export default function Settings() {
             <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               {t('settings.learning_mode')}
             </h2>
+
             <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
               <label className="flex items-center justify-between cursor-pointer">
                 <div>
                   <div className="text-sm font-medium">{t('settings.dictation_enabled')}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('settings.dictation_enabled_desc')}</div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={dictationEnabled}
-                  onChange={async (e) => {
-                    const val = e.target.checked;
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={dictationEnabled}
+                  onClick={async () => {
+                    const val = !dictationEnabled;
                     setDictationEnabled(val);
                     await setSetting('dictation_enabled', val.toString());
                   }}
-                  className="w-4 h-4 rounded accent-primary"
-                />
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
+                    dictationEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                    dictationEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                  }`} />
+                </button>
               </label>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
+              <div>
+                <Select
+                  label={t('settings.algorithm')}
+                  value={algorithm}
+                  onChange={async (val) => {
+                    setAlgorithm(val);
+                    await setSetting('learning_mode', val);
+                    setSaved(true);
+                    setTimeout(() => setSaved(false), 2000);
+                  }}
+                  options={[
+                    { value: 'sm2', label: t('settings.algorithm_sm2') },
+                    { value: 'fsrs', label: t('settings.algorithm_fsrs') },
+                  ]}
+                />
+              </div>
+              <p className="text-xs text-amber-600 dark:text-amber-400">{t('settings.algorithm_hint')}</p>
+
+              {algorithm === 'fsrs' && (
+                <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                  <button
+                    onClick={() => setShowFsrsAdvanced(!showFsrsAdvanced)}
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    {t('settings.fsrs_advanced')}
+                    <span className="text-[10px]">{showFsrsAdvanced ? '▲' : '▼'}</span>
+                  </button>
+
+                  {showFsrsAdvanced && (
+                    <div className="space-y-3 mt-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          {t('settings.fsrs_retention')}
+                        </label>
+                        <input
+                          type="range"
+                          min="0.70"
+                          max="0.95"
+                          step="0.01"
+                          value={fsrsRetention}
+                          onChange={(e) => setFsrsRetention(e.target.value)}
+                          onMouseUp={async () => {
+                            await setSetting('fsrs_retention', fsrsRetention);
+                            setSaved(true);
+                            setTimeout(() => setSaved(false), 2000);
+                          }}
+                          className="w-full accent-primary"
+                        />
+                        <div className="flex justify-between text-xs text-gray-400 mt-1">
+                          <span>0.70</span>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{fsrsRetention}</span>
+                          <span>0.95</span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">{t('settings.fsrs_retention_desc')}</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          {t('settings.fsrs_max_interval')}
+                        </label>
+                        <input
+                          type="number"
+                          value={fsrsMaxInterval}
+                          onChange={(e) => setFsrsMaxInterval(e.target.value)}
+                          onBlur={async () => {
+                            await setSetting('fsrs_max_interval', fsrsMaxInterval);
+                            setSaved(true);
+                            setTimeout(() => setSaved(false), 2000);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          {t('settings.fsrs_parameters')}
+                        </label>
+                        <textarea
+                          value={fsrsParams}
+                          onChange={(e) => setFsrsParams(e.target.value)}
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                          placeholder='[0.4, 0.6, 2.4, ...]'
+                        />
+                        <button
+                          onClick={async () => {
+                            await setSetting('fsrs_parameters', fsrsParams);
+                            setSaved(true);
+                            setTimeout(() => setSaved(false), 2000);
+                          }}
+                          className="mt-2 px-3 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-primary-hover transition-colors"
+                        >
+                          {t('common.save')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         )}

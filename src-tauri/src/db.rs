@@ -77,6 +77,19 @@ impl Database {
                 .ok();
             conn.execute_batch("PRAGMA user_version = 1").ok();
         }
+        if schema_version < 2 {
+            conn.execute_batch("ALTER TABLE cards ADD COLUMN stability REAL DEFAULT 0")
+                .ok();
+            conn.execute_batch("ALTER TABLE cards ADD COLUMN difficulty REAL DEFAULT 0")
+                .ok();
+            conn.execute_batch("ALTER TABLE cards ADD COLUMN lapses INTEGER DEFAULT 0")
+                .ok();
+            conn.execute_batch("ALTER TABLE cards ADD COLUMN fsrs_state INTEGER DEFAULT 0")
+                .ok();
+            conn.execute_batch("ALTER TABLE cards ADD COLUMN last_review_at TEXT DEFAULT ''")
+                .ok();
+            conn.execute_batch("PRAGMA user_version = 2").ok();
+        }
 
         Ok(())
     }

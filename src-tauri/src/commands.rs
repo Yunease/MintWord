@@ -199,13 +199,23 @@ pub fn delete_card(db: State<Database>, card_id: String) -> Result<(), String> {
 pub fn get_study_cards(db: State<Database>, deck_id: String, limit: i32) -> Result<Vec<StudyCard>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-    let mut stmt = conn.prepare(
+
+    let order_clause = if get_learning_mode(&conn) == "fsrs" {
+        "ORDER BY next_review_at ASC"
+    } else {
+        "ORDER BY RANDOM()"
+    };
+
+    let sql = format!(
         "SELECT id, deck_id, front, back, phonetic, example_sentence, notes
          FROM cards
          WHERE deck_id = ?1 AND next_review_at <= ?2 AND mastered = 0
-         ORDER BY RANDOM()
-         LIMIT ?3"
-    ).map_err(|e| e.to_string())?;
+         {}
+         LIMIT ?3",
+        order_clause
+    );
+
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let cards = stmt.query_map(rusqlite::params![deck_id, now, limit], |row| {
         Ok(StudyCard {
             id: row.get(0)?,
@@ -241,27 +251,102 @@ pub fn get_study_cards_available(db: State<Database>, deck_id: String) -> Result
     Ok(count)
 }
 
+fn get_learning_mode(conn: &rusqlite::Connection) -> String {
+    conn.query_row(
+        "SELECT value FROM settings WHERE key = 'learning_mode'",
+        [],
+        |row| row.get(0),
+    ).unwrap_or_else(|_| "sm2".to_string())
+}
+
+fn get_fsrs_setting(conn: &rusqlite::Connection, key: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT value FROM settings WHERE key = ?1",
+        rusqlite::params![key],
+        |row| row.get(0),
+    ).ok()
+}
+
+fn get_fsrs_retention(conn: &rusqlite::Connection) -> Option<f64> {
+    get_fsrs_setting(conn, "fsrs_retention")?.parse().ok()
+}
+
+fn get_fsrs_max_interval(conn: &rusqlite::Connection) -> Option<i32> {
+    get_fsrs_setting(conn, "fsrs_max_interval")?.parse().ok()
+}
+
+fn get_fsrs_params_json(conn: &rusqlite::Connection) -> Option<String> {
+    let v = get_fsrs_setting(conn, "fsrs_parameters")?;
+    if v.is_empty() { None } else { Some(v) }
+}
+
 #[tauri::command]
 pub fn submit_review_simple(db: State<Database>, card_id: String, rating: i32, mastered: bool) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let now = chrono::Utc::now();
+    let now_str = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+
+    if get_learning_mode(&conn) == "fsrs" {
+        let (stability, difficulty, interval, repetitions, lapses, fsrs_state, next_review_at, last_review_at): (f64, f64, i32, i32, i32, i32, String, String) = conn.query_row(
+            "SELECT COALESCE(stability,0), COALESCE(difficulty,0), interval, repetitions, COALESCE(lapses,0), COALESCE(fsrs_state,0), next_review_at, COALESCE(last_review_at,'') FROM cards WHERE id = ?1",
+            rusqlite::params![card_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?)),
+        ).map_err(|e| e.to_string())?;
+
+        if mastered {
+            conn.execute(
+                "UPDATE cards SET mastered = 1, stability = 36500, interval = 36500, next_review_at = ?1, updated_at = ?1 WHERE id = ?2",
+                rusqlite::params![now_str, card_id],
+            ).map_err(|e| e.to_string())?;
+            let review_id = uuid::Uuid::new_v4().to_string();
+            conn.execute(
+                "INSERT INTO review_log (id, card_id, quality, interval_before, interval_after, ease_before, ease_after, reviewed_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                rusqlite::params![review_id, card_id, 5, interval, 36500, stability, 36500, now_str],
+            ).map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+
+        let retention = get_fsrs_retention(&conn);
+        let max_interval = get_fsrs_max_interval(&conn);
+        let custom_w = get_fsrs_params_json(&conn);
+        let result = engine::fsrs_review(
+            stability, difficulty, interval, repetitions, lapses, fsrs_state,
+            &next_review_at, &last_review_at, rating,
+            retention, max_interval, custom_w.as_deref(),
+        )?;
+
+        conn.execute(
+            "UPDATE cards SET stability = ?1, difficulty = ?2, interval = ?3, repetitions = ?4, lapses = ?5, fsrs_state = ?6, next_review_at = ?7, last_review_at = ?8, updated_at = ?9 WHERE id = ?10",
+            rusqlite::params![result.stability, result.difficulty, result.interval, result.repetitions, result.lapses, result.fsrs_state, result.next_review_at, result.last_review_at, now_str, card_id],
+        ).map_err(|e| e.to_string())?;
+
+        let review_id = uuid::Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO review_log (id, card_id, quality, interval_before, interval_after, ease_before, ease_after, reviewed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![review_id, card_id, rating, interval, result.interval, stability, result.stability, now_str],
+        ).map_err(|e| e.to_string())?;
+
+        return Ok(());
+    }
+
     let (ease_factor, interval, repetitions): (f64, i32, i32) = conn.query_row(
         "SELECT ease_factor, interval, repetitions FROM cards WHERE id = ?1",
         rusqlite::params![card_id],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     ).map_err(|e| e.to_string())?;
 
-    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-
     if mastered {
         conn.execute(
             "UPDATE cards SET mastered = 1, interval = 36500, repetitions = 999, next_review_at = ?1, updated_at = ?1 WHERE id = ?2",
-            rusqlite::params![now, card_id],
+            rusqlite::params![now_str, card_id],
         ).map_err(|e| e.to_string())?;
         let review_id = uuid::Uuid::new_v4().to_string();
         conn.execute(
             "INSERT INTO review_log (id, card_id, quality, interval_before, interval_after, ease_before, ease_after, reviewed_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            rusqlite::params![review_id, card_id, 5, interval, 36500, ease_factor, ease_factor, now],
+            rusqlite::params![review_id, card_id, 5, interval, 36500, ease_factor, ease_factor, now_str],
         ).map_err(|e| e.to_string())?;
         return Ok(());
     }
@@ -274,14 +359,14 @@ pub fn submit_review_simple(db: State<Database>, card_id: String, rating: i32, m
 
     conn.execute(
         "UPDATE cards SET ease_factor = ?1, interval = ?2, repetitions = ?3, next_review_at = ?4, updated_at = ?5 WHERE id = ?6",
-        rusqlite::params![result.ease_factor, result.interval, result.repetitions, next_review, now, card_id],
+        rusqlite::params![result.ease_factor, result.interval, result.repetitions, next_review, now_str, card_id],
     ).map_err(|e| e.to_string())?;
 
     let review_id = uuid::Uuid::new_v4().to_string();
     conn.execute(
         "INSERT INTO review_log (id, card_id, quality, interval_before, interval_after, ease_before, ease_after, reviewed_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        rusqlite::params![review_id, card_id, rating, interval, result.interval, ease_factor, result.ease_factor, now],
+        rusqlite::params![review_id, card_id, rating, interval, result.interval, ease_factor, result.ease_factor, now_str],
     ).map_err(|e| e.to_string())?;
 
     Ok(())
@@ -291,10 +376,18 @@ pub fn submit_review_simple(db: State<Database>, card_id: String, rating: i32, m
 pub fn master_card(db: State<Database>, card_id: String) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-    conn.execute(
-        "UPDATE cards SET mastered = 1, interval = 36500, repetitions = 999, updated_at = ?1 WHERE id = ?2",
-        rusqlite::params![now, card_id],
-    ).map_err(|e| e.to_string())?;
+
+    if get_learning_mode(&conn) == "fsrs" {
+        conn.execute(
+            "UPDATE cards SET mastered = 1, stability = 36500, interval = 36500, next_review_at = ?1, updated_at = ?1 WHERE id = ?2",
+            rusqlite::params![now, card_id],
+        ).map_err(|e| e.to_string())?;
+    } else {
+        conn.execute(
+            "UPDATE cards SET mastered = 1, interval = 36500, repetitions = 999, updated_at = ?1 WHERE id = ?2",
+            rusqlite::params![now, card_id],
+        ).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -302,10 +395,18 @@ pub fn master_card(db: State<Database>, card_id: String) -> Result<(), String> {
 pub fn unmaster_card(db: State<Database>, card_id: String) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-    conn.execute(
-        "UPDATE cards SET mastered = 0, interval = 0, repetitions = 0, next_review_at = ?1, updated_at = ?1 WHERE id = ?2",
-        rusqlite::params![now, card_id],
-    ).map_err(|e| e.to_string())?;
+
+    if get_learning_mode(&conn) == "fsrs" {
+        conn.execute(
+            "UPDATE cards SET mastered = 0, stability = 0, difficulty = 0, interval = 0, repetitions = 0, lapses = 0, fsrs_state = 0, next_review_at = ?1, updated_at = ?1 WHERE id = ?2",
+            rusqlite::params![now, card_id],
+        ).map_err(|e| e.to_string())?;
+    } else {
+        conn.execute(
+            "UPDATE cards SET mastered = 0, interval = 0, repetitions = 0, next_review_at = ?1, updated_at = ?1 WHERE id = ?2",
+            rusqlite::params![now, card_id],
+        ).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -397,7 +498,7 @@ pub fn get_deck_progress(db: State<Database>, deck_id: String) -> Result<DeckPro
     ).unwrap_or(0);
 
     let studied_count: i32 = conn.query_row(
-        "SELECT COUNT(*) FROM cards WHERE deck_id = ?1 AND (interval > 0 OR mastered = 1)",
+        "SELECT COUNT(*) FROM cards WHERE deck_id = ?1 AND (interval > 0 OR stability > 0 OR mastered = 1)",
         rusqlite::params![deck_id],
         |row| row.get(0),
     ).unwrap_or(0);
@@ -417,9 +518,52 @@ pub fn get_deck_progress(db: State<Database>, deck_id: String) -> Result<DeckPro
     Ok(DeckProgress { total_count, studied_count, mastered_count, due_count })
 }
 
+fn map_quality_to_simple(quality: i32) -> i32 {
+    match quality {
+        0 | 1 | 2 => 0,
+        3 => 1,
+        _ => 2,
+    }
+}
+
 #[tauri::command]
 pub fn submit_review(db: State<Database>, card_id: String, quality: i32) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let now = chrono::Utc::now();
+    let now_str = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
+
+    if get_learning_mode(&conn) == "fsrs" {
+        let (stability, difficulty, interval, repetitions, lapses, fsrs_state, next_review_at, last_review_at): (f64, f64, i32, i32, i32, i32, String, String) = conn.query_row(
+            "SELECT COALESCE(stability,0), COALESCE(difficulty,0), interval, repetitions, COALESCE(lapses,0), COALESCE(fsrs_state,0), next_review_at, COALESCE(last_review_at,'') FROM cards WHERE id = ?1",
+            rusqlite::params![card_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?, row.get(7)?)),
+        ).map_err(|e| e.to_string())?;
+
+        let simple = map_quality_to_simple(quality);
+        let retention = get_fsrs_retention(&conn);
+        let max_interval = get_fsrs_max_interval(&conn);
+        let custom_w = get_fsrs_params_json(&conn);
+        let result = engine::fsrs_review(
+            stability, difficulty, interval, repetitions, lapses, fsrs_state,
+            &next_review_at, &last_review_at, simple,
+            retention, max_interval, custom_w.as_deref(),
+        )?;
+
+        conn.execute(
+            "UPDATE cards SET stability = ?1, difficulty = ?2, interval = ?3, repetitions = ?4, lapses = ?5, fsrs_state = ?6, next_review_at = ?7, last_review_at = ?8, updated_at = ?9 WHERE id = ?10",
+            rusqlite::params![result.stability, result.difficulty, result.interval, result.repetitions, result.lapses, result.fsrs_state, result.next_review_at, result.last_review_at, now_str, card_id],
+        ).map_err(|e| e.to_string())?;
+
+        let review_id = uuid::Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO review_log (id, card_id, quality, interval_before, interval_after, ease_before, ease_after, reviewed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![review_id, card_id, quality, interval, result.interval, stability, result.stability, now_str],
+        ).map_err(|e| e.to_string())?;
+
+        return Ok(());
+    }
+
     let (ease_factor, interval, repetitions): (f64, i32, i32) = conn.query_row(
         "SELECT ease_factor, interval, repetitions FROM cards WHERE id = ?1",
         rusqlite::params![card_id],
@@ -427,8 +571,6 @@ pub fn submit_review(db: State<Database>, card_id: String, quality: i32) -> Resu
     ).map_err(|e| e.to_string())?;
 
     let result = engine::sm2(quality, repetitions, interval, ease_factor);
-
-    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
     let review_id = uuid::Uuid::new_v4().to_string();
 
     let next_review = (chrono::Utc::now() + chrono::Duration::days(result.interval as i64))
@@ -437,13 +579,13 @@ pub fn submit_review(db: State<Database>, card_id: String, quality: i32) -> Resu
 
     conn.execute(
         "UPDATE cards SET ease_factor = ?1, interval = ?2, repetitions = ?3, next_review_at = ?4, updated_at = ?5 WHERE id = ?6",
-        rusqlite::params![result.ease_factor, result.interval, result.repetitions, next_review, now, card_id],
+        rusqlite::params![result.ease_factor, result.interval, result.repetitions, next_review, now_str, card_id],
     ).map_err(|e| e.to_string())?;
 
     conn.execute(
         "INSERT INTO review_log (id, card_id, quality, interval_before, interval_after, ease_before, ease_after, reviewed_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-        rusqlite::params![review_id, card_id, quality, interval, result.interval, ease_factor, result.ease_factor, now],
+        rusqlite::params![review_id, card_id, quality, interval, result.interval, ease_factor, result.ease_factor, now_str],
     ).map_err(|e| e.to_string())?;
 
     Ok(())

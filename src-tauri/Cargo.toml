@@ -1,6 +1,6 @@
 [package]
 name = "mintword"
-version = "0.2.0"
+version = "0.3.0"
 description = "MintWord - A vocabulary learning app"
 authors = ["you"]
 license = "AGPL-3.0"
@@ -33,6 +33,7 @@ rodio = "0.20"
 dirs = "6"
 rand = "0.8"
 regex = "1"
+rs-fsrs = "1.2.1"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [
