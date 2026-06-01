@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { speakText, speakAi, getPlatform, getSetting, setSetting, testAiApi, getAiPrompt, setAiPrompt } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
+import AiModelList from '../components/ai/AiModelList';
+import AiAddModel from '../components/ai/AiAddModel';
+import AiModelDetail from '../components/ai/AiModelDetail';
 
 type Theme = 'mint' | 'ocean' | 'warm' | 'lavender';
 
@@ -30,12 +33,9 @@ export default function Settings() {
   const [showFsrsAdvanced, setShowFsrsAdvanced] = useState(false);
   const [platform, setPlatform] = useState('unknown');
 
-  const [aiUrl, setAiUrl] = useState('');
-  const [aiKey, setAiKey] = useState('');
-  const [aiModel, setAiModel] = useState('gpt-4o-mini');
-  const [aiTestResult, setAiTestResult] = useState('');
-  const [aiTesting, setAiTesting] = useState(false);
   const [aiPrompt, setAiPromptState] = useState('');
+  const [aiView, setAiView] = useState<'list' | 'add' | 'detail'>('list');
+  const [aiEditIndex, setAiEditIndex] = useState<number>(-1);
 
   useEffect(() => {
     getPlatform().then(setPlatform).catch(() => undefined);
@@ -48,12 +48,6 @@ export default function Settings() {
       if (voice) setTtsVoice(voice);
       const model = await getSetting('tts_ai_model');
       if (model) setTtsModel(model);
-      const aiApiUrl = await getSetting('ai_api_url');
-      if (aiApiUrl) setAiUrl(aiApiUrl);
-      const aiApiKey = await getSetting('ai_api_key');
-      if (aiApiKey) setAiKey(aiApiKey);
-      const aiModelVal = await getSetting('ai_model');
-      if (aiModelVal) setAiModel(aiModelVal);
       const promptVal = await getAiPrompt();
       if (promptVal) setAiPromptState(promptVal);
       const savedLang = await getSetting('lang');
@@ -111,13 +105,13 @@ export default function Settings() {
   async function handleThemeChange(newTheme: Theme) {
     setTheme(newTheme);
     await setSetting('theme', newTheme);
-    try { localStorage.setItem('mintword_theme', newTheme); } catch { /* localStorage may be unavailable */ }
+    try { localStorage.setItem('mintword_theme', newTheme); } catch { /* ignore */ }
   }
 
   async function handleDarkMode(val: boolean) {
     setDarkMode(val);
     await setSetting('dark_mode', val.toString());
-    try { localStorage.setItem('mintword_dark_mode', val.toString()); } catch { /* localStorage may be unavailable */ }
+    try { localStorage.setItem('mintword_dark_mode', val.toString()); } catch { /* ignore */ }
   }
 
   const systemTtsSupported = platform === 'windows' || platform === 'macos';
@@ -353,123 +347,62 @@ export default function Settings() {
 
         {activeSection === 'ai' && (
           <section className="space-y-4">
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-2">
-              {t('settings.ai')}
-              <div className="relative group">
-                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 text-[10px] text-white cursor-help">?</span>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg shadow-lg z-10">
-                  <div className="font-medium mb-1">{t('settings.ai_tts_tip_title')}</div>
-                  <div className="leading-relaxed">{t('settings.ai_tts_tip')}</div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-100" />
+            {aiView === 'list' && (
+              <>
+                <AiModelList
+                  onAddModel={() => setAiView('add')}
+                  onEditModel={(idx) => { setAiEditIndex(idx); setAiView('detail'); }}
+                />
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-gray-500 dark:text-gray-400">{t('ai.prompt')}</label>
+                    <button
+                      onClick={async () => {
+                        setAiPromptState('');
+                        await setAiPrompt('');
+                      }}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {t('ai.prompt_reset')}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400">{t('ai.prompt_desc')}</p>
+                  <textarea
+                    value={aiPrompt}
+                    onChange={(e) => setAiPromptState(e.target.value)}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (aiPrompt.trim()) {
+                        await setAiPrompt(aiPrompt);
+                        setSaved(true);
+                        setTimeout(() => setSaved(false), 2000);
+                      }
+                    }}
+                    disabled={!aiPrompt.trim()}
+                    className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
+                  >
+                    {t('common.save')}
+                  </button>
                 </div>
-              </div>
-            </h2>
-
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('settings.ai_api_url')}</label>
-                <input
-                  value={aiUrl}
-                  onChange={(e) => setAiUrl(e.target.value)}
-                  placeholder="https://api.openai.com/v1"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('settings.ai_api_key')}</label>
-                <input
-                  type="password"
-                  value={aiKey}
-                  onChange={(e) => setAiKey(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('settings.ai_model')}</label>
-                <input
-                  value={aiModel}
-                  onChange={(e) => setAiModel(e.target.value)}
-                  placeholder="gpt-4o-mini"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    await setSetting('ai_api_url', aiUrl);
-                    await setSetting('ai_api_key', aiKey);
-                    await setSetting('ai_model', aiModel);
-                    setSaved(true);
-                    setTimeout(() => setSaved(false), 2000);
-                  }}
-                  className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
-                >
-                  {t('common.save')}
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!aiKey) return;
-                    setAiTesting(true);
-                    setAiTestResult('');
-                    try {
-                      const result = await testAiApi(aiUrl || 'https://api.openai.com/v1', aiKey, aiModel || 'gpt-4o-mini');
-                      setAiTestResult(result);
-                    } catch (e) {
-                      setAiTestResult(`${t('settings.ai_test_fail')}: ${e}`);
-                    }
-                    setAiTesting(false);
-                  }}
-                  disabled={!aiKey || aiTesting}
-                  className="px-4 py-1.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                >
-                  {aiTesting ? '...' : t('settings.ai_test')}
-                </button>
-              </div>
-
-              {aiTestResult && (
-                <div className={`text-xs ${aiTestResult.includes('成功') || aiTestResult.includes('success') || aiTestResult.includes('正常') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {aiTestResult}
-                </div>
-              )}
-            </div>
-
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs text-gray-500 dark:text-gray-400">{t('settings.ai_prompt')}</label>
-                <button
-                  onClick={async () => {
-                    setAiPromptState('');
-                    await setAiPrompt('');
-                  }}
-                  className="text-xs text-primary hover:underline"
-                >
-                  {t('settings.ai_prompt_reset')}
-                </button>
-              </div>
-              <p className="text-xs text-gray-400">{t('settings.ai_prompt_desc')}</p>
-              <textarea
-                value={aiPrompt}
-                onChange={(e) => setAiPromptState(e.target.value)}
-                rows={8}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
+              </>
+            )}
+            {aiView === 'add' && (
+              <AiAddModel
+                onBack={() => setAiView('list')}
+                onSaved={() => setAiView('list')}
               />
-              <button
-                onClick={async () => {
-                  if (aiPrompt.trim()) {
-                    await setAiPrompt(aiPrompt);
-                    setSaved(true);
-                    setTimeout(() => setSaved(false), 2000);
-                  }
-                }}
-                disabled={!aiPrompt.trim()}
-                className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
-              >
-                {t('common.save')}
-              </button>
-            </div>
+            )}
+            {aiView === 'detail' && aiEditIndex >= 0 && (
+              <AiModelDetail
+                modelIndex={aiEditIndex}
+                onBack={() => setAiView('list')}
+                onSaved={() => setAiView('list')}
+                onDeleted={() => setAiView('list')}
+              />
+            )}
           </section>
         )}
 
