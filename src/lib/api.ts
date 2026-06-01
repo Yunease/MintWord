@@ -134,8 +134,8 @@ export async function importArticleTxt(filePath: string): Promise<Article> {
 
 // === AI Quiz (legacy — kept for backward compatibility) ===
 
-export async function generateQuestions(articleId: string, apiUrl: string, apiKey: string, model: string): Promise<Question[]> {
-  return invoke('generate_questions', { articleId, apiUrl, apiKey, model });
+export async function generateQuestions(articleId: string, apiUrl: string, apiKey: string, model: string, prompt?: string): Promise<Question[]> {
+  return invoke('generate_questions', { articleId, apiUrl, apiKey, model, prompt: prompt ?? null });
 }
 
 export async function saveQuestions(articleId: string, questions: Question[]): Promise<void> {
@@ -152,8 +152,8 @@ export async function testAiApi(apiUrl: string, apiKey: string, model: string): 
 
 // === AI Quiz (multi-provider) ===
 
-export async function generateQuestionsWithConfig(articleId: string, config: ProviderConfig): Promise<Question[]> {
-  return invoke('generate_questions_with_config', { articleId, config });
+export async function generateQuestionsWithConfig(articleId: string, config: ProviderConfig, prompt?: string): Promise<Question[]> {
+  return invoke('generate_questions_with_config', { articleId, config, prompt: prompt ?? null });
 }
 
 export async function testAiConfig(config: ProviderConfig): Promise<string> {

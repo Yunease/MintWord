@@ -761,10 +761,14 @@ pub async fn generate_questions(
     api_url: String,
     api_key: String,
     model: String,
+    prompt: Option<String>,
 ) -> Result<Vec<ai::Question>, String> {
     let article = library::get_article(&db.app_dir, &article_id)?;
 
-    let prompt = get_custom_prompt(&db)?;
+    let prompt = match prompt {
+        Some(p) if !p.is_empty() => p,
+        _ => get_custom_prompt(&db)?,
+    };
 
     let response = ai::chat_completion(&api_url, &api_key, &model, &prompt, &article.content).await?;
     ai::parse_questions(&response)
@@ -835,9 +839,13 @@ pub async fn generate_questions_with_config(
     db: State<'_, Database>,
     article_id: String,
     config: ai::ProviderConfig,
+    prompt: Option<String>,
 ) -> Result<Vec<ai::Question>, String> {
     let article = library::get_article(&db.app_dir, &article_id)?;
-    let prompt = get_custom_prompt(&db)?;
+    let prompt = match prompt {
+        Some(p) if !p.is_empty() => p,
+        _ => get_custom_prompt(&db)?,
+    };
     let response = ai::chat_with_provider(&config, &prompt, &article.content).await?;
     ai::parse_questions(&response.content)
 }

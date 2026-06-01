@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { speakText, speakAi, getPlatform, getSetting, setSetting, getAiPrompt, setAiPrompt } from '../lib/api';
+import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
 import AiModelList from '../components/ai/AiModelList';
 import AiAddModel from '../components/ai/AiAddModel';
 import AiModelDetail from '../components/ai/AiModelDetail';
+import QuizConfigPanel from '../components/QuizConfig';
+import { buildPrompt, DEFAULT_QUIZ_CONFIG, loadQuizConfig, saveQuizConfig } from '../lib/quizPrompt';
+import type { QuizConfig } from '../lib/quizPrompt';
 
 type Theme = 'mint' | 'ocean' | 'warm' | 'lavender';
 
@@ -33,9 +36,9 @@ export default function Settings() {
   const [showFsrsAdvanced, setShowFsrsAdvanced] = useState(false);
   const [platform, setPlatform] = useState('unknown');
 
-  const [aiPrompt, setAiPromptState] = useState('');
   const [aiView, setAiView] = useState<'list' | 'add' | 'detail'>('list');
   const [aiEditIndex, setAiEditIndex] = useState<number>(-1);
+  const [quizConfig, setQuizConfig] = useState<QuizConfig>(DEFAULT_QUIZ_CONFIG);
 
   useEffect(() => {
     getPlatform().then(setPlatform).catch(() => undefined);
@@ -48,8 +51,8 @@ export default function Settings() {
       if (voice) setTtsVoice(voice);
       const model = await getSetting('tts_ai_model');
       if (model) setTtsModel(model);
-      const promptVal = await getAiPrompt();
-      if (promptVal) setAiPromptState(promptVal);
+      const savedQuizConfig = await loadQuizConfig();
+      setQuizConfig(savedQuizConfig);
       const savedLang = await getSetting('lang');
       if (savedLang === 'en' || savedLang === 'zh' || savedLang === 'zh-TW') {
         setLangState(savedLang);
@@ -363,42 +366,17 @@ export default function Settings() {
 
                 <section className="space-y-4">
                   <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {t('ai.prompt')}
+                    {t('ai.quiz_settings')}
                   </h2>
-                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs text-gray-500 dark:text-gray-400">{t('ai.prompt')}</label>
-                      <button
-                        onClick={async () => {
-                          setAiPromptState('');
-                          await setAiPrompt('');
-                        }}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        {t('ai.prompt_reset')}
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-400">{t('ai.prompt_desc')}</p>
-                    <textarea
-                      value={aiPrompt}
-                      onChange={(e) => setAiPromptState(e.target.value)}
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
-                    />
-                    <button
-                      onClick={async () => {
-                        if (aiPrompt.trim()) {
-                          await setAiPrompt(aiPrompt);
-                          setSaved(true);
-                          setTimeout(() => setSaved(false), 2000);
-                        }
-                      }}
-                      disabled={!aiPrompt.trim()}
-                      className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
-                    >
-                      {t('common.save')}
-                    </button>
-                  </div>
+                  <QuizConfigPanel
+                    config={quizConfig}
+                    onChange={(newConfig) => {
+                      setQuizConfig(newConfig);
+                      saveQuizConfig(newConfig);
+                      const prompt = buildPrompt(newConfig);
+                      setAiPrompt(prompt);
+                    }}
+                  />
                 </section>
               </>
             )}

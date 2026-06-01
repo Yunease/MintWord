@@ -3,7 +3,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getArticle, generateQuestions, generateQuestionsWithConfig, saveQuestions, getArticleQuestions, getSetting } from '../lib/api';
 import { t } from '../lib/i18n';
+import QuizConfigPanel from '../components/QuizConfig';
+import { buildPrompt, DEFAULT_QUIZ_CONFIG, loadQuizConfig, saveQuizConfig } from '../lib/quizPrompt';
 import type { Question, ProviderConfig } from '../types';
+import type { QuizConfig } from '../lib/quizPrompt';
 
 export default function ArticleView() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +27,11 @@ export default function ArticleView() {
   const [submitted, setSubmitted] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [quizConfig, setQuizConfig] = useState<QuizConfig>(DEFAULT_QUIZ_CONFIG);
+
+  useEffect(() => {
+    loadQuizConfig().then(setQuizConfig);
+  }, []);
 
   useEffect(() => {
     if (savedQuestions && savedQuestions.length > 0) {
@@ -35,6 +43,8 @@ export default function ArticleView() {
     mutationFn: async () => {
       setGenerating(true);
       setError('');
+      saveQuizConfig(quizConfig);
+      const prompt = buildPrompt(quizConfig);
       // Try new multi-provider config first
       const configListStr = await getSetting('ai_provider_config_list');
       if (configListStr) {
@@ -42,7 +52,7 @@ export default function ArticleView() {
           const configList: ProviderConfig[] = JSON.parse(configListStr);
           if (configList.length > 0) {
             const config = configList[0]; // Use first configured model
-            const qs = await generateQuestionsWithConfig(id!, config);
+            const qs = await generateQuestionsWithConfig(id!, config, prompt);
             await saveQuestions(id!, qs);
             return qs;
           }
@@ -53,7 +63,7 @@ export default function ArticleView() {
       const apiKey = await getSetting('ai_api_key');
       const model = await getSetting('ai_model');
       if (!apiKey) throw new Error(t('library.config_first'));
-      const qs = await generateQuestions(id!, apiUrl || 'https://api.openai.com/v1', apiKey, model || 'gpt-4o-mini');
+      const qs = await generateQuestions(id!, apiUrl || 'https://api.openai.com/v1', apiKey, model || 'gpt-4o-mini', prompt);
       await saveQuestions(id!, qs);
       return qs;
     },
@@ -79,6 +89,7 @@ export default function ArticleView() {
   }
 
   function handleRegenerate() {
+    saveQuizConfig(quizConfig);
     genMut.mutate();
   }
 
@@ -130,6 +141,11 @@ export default function ArticleView() {
 
         {questions.length > 0 ? (
           <div className="space-y-8">
+            <QuizConfigPanel
+              config={quizConfig}
+              onChange={setQuizConfig}
+            />
+
             {questions.map((q, qi) => (
               <div key={q.id} className="bg-white dark:bg-gray-900 rounded-xl border border-border p-6">
                 <div className="font-semibold text-base mb-4 leading-relaxed">{qi + 1}. {q.question}</div>
@@ -211,17 +227,17 @@ export default function ArticleView() {
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 space-y-4">
-            <p className="text-gray-400">
+          <div className="space-y-4">
+            <p className="text-center text-gray-400 text-sm">
               {t('library.no_questions')}
             </p>
-            <button
-              onClick={() => genMut.mutate()}
-              disabled={generating}
-              className="px-6 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
-            >
-              {generating ? t('library.generating') : t('library.generate')}
-            </button>
+            <QuizConfigPanel
+              config={quizConfig}
+              onChange={setQuizConfig}
+              showGenerateButton
+              generating={generating}
+              onGenerate={() => genMut.mutate()}
+            />
           </div>
         )}
       </div>

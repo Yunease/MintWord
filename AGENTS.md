@@ -90,6 +90,20 @@ src-tauri/              Rust 后端
 - **CSS**：Tailwind CSS v4 通过 Vite 插件加载。主题切换通过 `index.css` 中的 CSS 自定义属性（`.theme-ocean`、`.theme-warm`、`.theme-lavender`）+ `.dark` 类实现深色模式。
 - **SQLite**：WAL 模式，外键开启。连接通过 `Mutex` 保护。Schema 迁移在 `db.rs:migrate()`。数据库文件位于应用数据目录（`mintword.db`）。
 - **内置词库**：`resources/bundled-decks/` 下的 CSV 文件通过 `include_str!()` 编译时嵌入，首次启动时导入。
+- **出题难度等级**：AI 出题功能支持以下词汇等级（定义在 `src/lib/quizPrompt.ts` 的 `DIFFICULTY_LEVELS` 中）。**新增词库等级时，必须同时更新以下位置：**
+  - `src/lib/quizPrompt.ts` — `DIFFICULTY_LEVELS` 数组
+  - `src/lib/i18n.ts` — 三种语言的 `ai.level.{id}` 翻译键（zh / zh-TW / en）
+
+  | 等级 ID | 中文名 | 英文名 |
+  |---------|--------|--------|
+  | `zhongkao` | 中考 | Zhongkao (Middle School) |
+  | `gaokao` | 高考 | Gaokao (College Entrance) |
+  | `cet4` | CET4（四级） | CET-4 |
+  | `cet6` | CET6（六级） | CET-6 |
+  | `kaoyan` | 考研 | Kaoyan (Graduate Entrance) |
+  | `gre` | GRE | GRE |
+  | `toefl` | TOEFL | TOEFL |
+  | `ielts` | IELTS | IELTS |
 - **ID**：所有实体（decks、cards、articles）使用 UUID v4。
 - **Tauri 权限**：`capabilities/default.json` 控制前端可访问的能力。当前允许对话框 + 文件系统读取。
 
