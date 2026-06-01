@@ -624,9 +624,13 @@ pub fn get_stats(db: State<Database>) -> Result<ReviewStats, String> {
 }
 
 #[tauri::command]
-pub fn import_csv_file(db: State<Database>, deck_id: String, file_path: String) -> Result<i32, String> {
+pub fn import_csv_file(
+    db: State<Database>,
+    deck_id: String,
+    file_path: String,
+) -> Result<crate::importer::ImportReport, String> {
     let mut conn = db.conn.lock().map_err(|e| e.to_string())?;
-    crate::importer::import_csv(&mut *conn, &deck_id, &file_path)
+    crate::importer::import_file(&mut *conn, &deck_id, &file_path)
 }
 
 #[tauri::command]

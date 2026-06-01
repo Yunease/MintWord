@@ -105,3 +105,21 @@ export interface ProviderConfig {
   thinkingBudget?: number;
   subOptionValues?: Record<string, string>;
 }
+
+export interface ImportFieldMapping {
+  front: string[];
+  back: string[];
+  phonetic: string[];
+  example_sentence: string[];
+}
+
+export interface ImportReport {
+  imported_count: number;
+  total_notes: number;
+  skipped_count: number;
+  source_format: string;
+  matched_fields: ImportFieldMapping;
+  missing_fields: string[];
+  used_fallback_mapping: boolean;
+}
+}

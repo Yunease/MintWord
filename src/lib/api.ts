@@ -1,5 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport } from '../types';
 
 const TAURI_AVAILABLE = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -78,7 +78,7 @@ export async function getStats(): Promise<ReviewStats> {
   return invoke('get_stats');
 }
 
-export async function importCsvFile(deckId: string, filePath: string): Promise<number> {
+export async function importDeckFile(deckId: string, filePath: string): Promise<ImportReport> {
   return invoke('import_csv_file', { deckId, filePath });
 }
 
