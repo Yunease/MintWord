@@ -142,6 +142,7 @@ export const PROVIDERS: AiProvider[] = [
         options: [
           { value: 'url', labelKey: 'ai.sub.loginMethod.url' },
           { value: 'device', labelKey: 'ai.sub.loginMethod.device' },
+          { value: 'api', labelKey: 'ai.sub.loginMethod.api' },
         ],
         defaultValue: 'url',
         affectsUrl: false,

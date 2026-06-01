@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { ProviderAvatar } from '../ProviderAvatar';
 import { t } from '../../lib/i18n';
 import { getSetting, setSetting, testAiConfig } from '../../lib/api';
+import { invoke } from '@tauri-apps/api/core';
 import { PROVIDERS, getProviderById, getEffectiveUrl, getFilteredModels, type AiProvider } from '../../lib/aiProviders';
 import type { ProviderConfig } from '../../types';
 import Select from '../Select';
@@ -47,6 +48,12 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
   const [testResult, setTestResult] = useState('');
   const [subOptionValues, setSubOptionValues] = useState<Record<string, string>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Device code login state
+  const [deviceCode, setDeviceCode] = useState('');
+  const [verificationUrl, setVerificationUrl] = useState('');
+  const [isDeviceCodeLoading, setIsDeviceCodeLoading] = useState(false);
+  const [deviceCodeError, setDeviceCodeError] = useState('');
 
   const [maxTokens, setMaxTokens] = useState('4096');
   const [temperature, setTemperature] = useState('0.7');
@@ -128,6 +135,57 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
       setModelId('');
       setCustomModelId('');
       setModelName('');
+    }
+  }
+
+  // Get current login method from sub-options
+  const currentLoginMethod = subOptionValues['loginMethod'] || 'url';
+  
+  // Handle URL login - open external link
+  function handleUrlLogin() {
+    if (selectedProvider?.id === 'chatgpt-plus') {
+      // Open ChatGPT login page
+      window.open('https://chatgpt.com/auth/login', '_blank');
+    }
+  }
+
+  // Handle device code login
+  async function handleDeviceCodeLogin() {
+    if (!selectedProvider || selectedProvider.id !== 'chatgpt-plus') return;
+    
+    setIsDeviceCodeLoading(true);
+    setDeviceCodeError('');
+    setDeviceCode('');
+    setVerificationUrl('');
+    
+    try {
+      // Call Rust backend to get device code
+      const result = await invoke('request_device_code');
+      if (result) {
+        const data = result as { user_code: string; verification_url: string };
+        setDeviceCode(data.user_code);
+        setVerificationUrl(data.verification_url);
+      }
+    } catch (error) {
+      setDeviceCodeError(`Failed to get device code: ${error}`);
+    } finally {
+      setIsDeviceCodeLoading(false);
+    }
+  }
+
+  // Handle device code completion
+  async function handleDeviceCodeComplete() {
+    if (!deviceCode) return;
+    
+    try {
+      await invoke('complete_device_code_login', {
+        deviceCode: deviceCode
+      });
+      // If successful, set a placeholder API key to indicate login success
+      setApiKey('device-code-authenticated');
+      setTestResult(t('ai.device_code_success'));
+    } catch (error) {
+      setDeviceCodeError(`Device code login failed: ${error}`);
     }
   }
 
@@ -305,25 +363,99 @@ export default function AiAddModel({ onBack, onSaved }: AiAddModelProps) {
           </div>
         )}
 
-        {/* API Key */}
+        {/* API Key / Login Methods */}
         {selectedProvider && (
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.key')}</label>
-            <div className="relative">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="w-full px-3 py-2 pr-16 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                {showKey ? t('ai.key_hide') : t('ai.key_show')}
-              </button>
-            </div>
+            {/* URL Login */}
+            {selectedProvider.id === 'chatgpt-plus' && currentLoginMethod === 'url' && (
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.login_method_url')}</label>
+                <button
+                  onClick={handleUrlLogin}
+                  className="w-full px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
+                >
+                  {t('ai.login_url_button')}
+                </button>
+                <p className="text-xs text-gray-400 mt-1">{t('ai.login_url_hint')}</p>
+              </div>
+            )}
+
+            {/* Device Code Login */}
+            {selectedProvider.id === 'chatgpt-plus' && currentLoginMethod === 'device' && (
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.login_method_device')}</label>
+                {!deviceCode ? (
+                  <button
+                    onClick={handleDeviceCodeLogin}
+                    disabled={isDeviceCodeLoading}
+                    className="w-full px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
+                  >
+                    {isDeviceCodeLoading ? '...' : t('ai.login_device_button')}
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-sm font-medium mb-2">{t('ai.device_code_title')}</p>
+                      <div className="flex items-center gap-2">
+                        <code className="px-3 py-2 bg-white dark:bg-gray-700 rounded border text-lg font-mono font-bold tracking-wider">
+                          {deviceCode}
+                        </code>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(deviceCode)}
+                          className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500"
+                        >
+                          {t('common.copy')}
+                        </button>
+                      </div>
+                    </div>
+                    {verificationUrl && (
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.device_code_url')}</p>
+                        <a
+                          href={verificationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline text-sm"
+                        >
+                          {verificationUrl}
+                        </a>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleDeviceCodeComplete}
+                      className="w-full px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+                    >
+                      {t('ai.device_code_complete')}
+                    </button>
+                  </div>
+                )}
+                {deviceCodeError && (
+                  <p className="text-xs text-red-500 mt-1">{deviceCodeError}</p>
+                )}
+              </div>
+            )}
+
+            {/* API Key Input */}
+            {(selectedProvider.id !== 'chatgpt-plus' || currentLoginMethod === 'api') && (
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('ai.key')}</label>
+                <div className="relative">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="w-full px-3 py-2 pr-16 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    {showKey ? t('ai.key_hide') : t('ai.key_show')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

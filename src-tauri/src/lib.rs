@@ -114,6 +114,8 @@ pub fn run() {
             commands::set_ai_prompt,
             commands::generate_questions_with_config,
             commands::test_ai_config,
+            commands::request_device_code,
+            commands::complete_device_code_login,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

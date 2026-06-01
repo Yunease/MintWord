@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { speakText, speakAi, getPlatform, getSetting, setSetting, testAiApi, getAiPrompt, setAiPrompt } from '../lib/api';
+import { speakText, speakAi, getPlatform, getSetting, setSetting, getAiPrompt, setAiPrompt } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
 import AiModelList from '../components/ai/AiModelList';

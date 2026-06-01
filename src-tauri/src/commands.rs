@@ -847,3 +847,98 @@ pub async fn test_ai_config(config: ai::ProviderConfig) -> Result<String, String
         Err(format!("Unexpected response: {}", response.content))
     }
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct DeviceCode {
+    pub user_code: String,
+    pub verification_url: String,
+    pub device_auth_id: String,
+    pub interval: u64,
+}
+
+#[tauri::command]
+pub async fn request_device_code() -> Result<DeviceCode, String> {
+    // Use OpenAI's device code endpoint
+    let client = reqwest::Client::new();
+    let auth_base_url = "https://auth.openai.com/api/accounts";
+    
+    let body = serde_json::json!({
+        "client_id": "openai-codex-cli"
+    });
+    
+    let response = client
+        .post(format!("{}/deviceauth/usercode", auth_base_url))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to request device code: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("Device code request failed with status: {}", response.status()));
+    }
+    
+    let data: serde_json::Value = response.json().await
+        .map_err(|e| format!("Failed to parse device code response: {}", e))?;
+    
+    let user_code = data["user_code"].as_str()
+        .ok_or("Missing user_code in response")?
+        .to_string();
+    let device_auth_id = data["device_auth_id"].as_str()
+        .ok_or("Missing device_auth_id in response")?
+        .to_string();
+    let interval = data["interval"].as_u64().unwrap_or(5);
+    
+    Ok(DeviceCode {
+        user_code,
+        verification_url: "https://chatgpt.com/codex/device".to_string(),
+        device_auth_id,
+        interval,
+    })
+}
+
+#[tauri::command]
+pub async fn complete_device_code_login(device_code: DeviceCode) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let auth_base_url = "https://auth.openai.com/api/accounts";
+    let max_wait = std::time::Duration::from_secs(15 * 60);
+    let start = std::time::Instant::now();
+    
+    loop {
+        let body = serde_json::json!({
+            "device_auth_id": device_code.device_auth_id,
+            "user_code": device_code.user_code
+        });
+        
+        let response = client
+            .post(format!("{}/deviceauth/token", auth_base_url))
+            .header("Content-Type", "application/json")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to poll for token: {}", e))?;
+        
+        let status = response.status();
+        
+        if status.is_success() {
+            let data: serde_json::Value = response.json().await
+                .map_err(|e| format!("Failed to parse token response: {}", e))?;
+            
+            let access_token = data["access_token"].as_str()
+                .ok_or("Missing access_token in response")?
+                .to_string();
+            
+            return Ok(access_token);
+        }
+        
+        if status == reqwest::StatusCode::FORBIDDEN || status == reqwest::StatusCode::NOT_FOUND {
+            if start.elapsed() >= max_wait {
+                return Err("Device auth timed out after 15 minutes".to_string());
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(device_code.interval)).await;
+            continue;
+        }
+        
+        return Err(format!("Device auth failed with status: {}", status));
+    }
+}
