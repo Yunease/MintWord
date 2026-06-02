@@ -26,8 +26,7 @@ export default function Settings() {
   const [ttsVoice, setTtsVoice] = useState('alloy');
   const [ttsModel, setTtsModel] = useState('tts-1');
   const [lang, setLangState] = useState<Lang>(getLang());
-  const [saved, setSaved] = useState(false);
-  const [cacheCleared, setCacheCleared] = useState(false);
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
   const [theme, setTheme] = useState<Theme>('mint');
   const [darkMode, setDarkMode] = useState(false);
   const [dictationEnabled, setDictationEnabled] = useState(true);
@@ -99,13 +98,19 @@ export default function Settings() {
     }
   }, [theme, darkMode]);
 
+  function showToast(message: string) {
+    setToast({ message, visible: true });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 2000);
+  }
+
   async function saveSettings() {
     await setSetting('tts_ai_url', ttsUrl);
     await setSetting('tts_ai_key', ttsKey);
     await setSetting('tts_ai_voice', ttsVoice);
     await setSetting('tts_ai_model', ttsModel);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    showToast(t('toast.saved'));
   }
 
   function handleLangChange(newLang: Lang) {
@@ -444,11 +449,10 @@ export default function Settings() {
                 <Select
                   label={t('settings.algorithm')}
                   value={algorithm}
-                  onChange={async (val) => {
+                    onChange={async (val) => {
                     setAlgorithm(val);
                     await setSetting('learning_mode', val);
-                    setSaved(true);
-                    setTimeout(() => setSaved(false), 2000);
+                    showToast(t('toast.saved'));
                   }}
                   options={[
                     { value: 'sm2', label: t('settings.algorithm_sm2') },
@@ -483,8 +487,7 @@ export default function Settings() {
                           onChange={(e) => setFsrsRetention(e.target.value)}
                           onMouseUp={async () => {
                             await setSetting('fsrs_retention', fsrsRetention);
-                            setSaved(true);
-                            setTimeout(() => setSaved(false), 2000);
+                            showToast(t('toast.saved'));
                           }}
                           className="w-full accent-primary"
                         />
@@ -506,8 +509,7 @@ export default function Settings() {
                           onChange={(e) => setFsrsMaxInterval(e.target.value)}
                           onBlur={async () => {
                             await setSetting('fsrs_max_interval', fsrsMaxInterval);
-                            setSaved(true);
-                            setTimeout(() => setSaved(false), 2000);
+                            showToast(t('toast.saved'));
                           }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
@@ -527,8 +529,7 @@ export default function Settings() {
                         <button
                           onClick={async () => {
                             await setSetting('fsrs_parameters', fsrsParams);
-                            setSaved(true);
-                            setTimeout(() => setSaved(false), 2000);
+                            showToast(t('toast.saved'));
                           }}
                           className="mt-2 px-3 py-1.5 bg-primary text-white rounded-lg text-xs hover:bg-primary-hover transition-colors"
                         >
@@ -563,8 +564,7 @@ export default function Settings() {
                     confirmLabel: t('settings.clear_learning_progress'),
                     onConfirm: async () => {
                       await clearLearningProgress();
-                      setCacheCleared(true);
-                      setTimeout(() => setCacheCleared(false), 2000);
+                      showToast(t('toast.cache_cleared'));
                     },
                   })}
                   className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
@@ -587,8 +587,7 @@ export default function Settings() {
                     confirmLabel: t('settings.clear_review_logs'),
                     onConfirm: async () => {
                       await clearReviewLogs();
-                      setCacheCleared(true);
-                      setTimeout(() => setCacheCleared(false), 2000);
+                      showToast(t('toast.cache_cleared'));
                     },
                   })}
                   className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
@@ -611,8 +610,7 @@ export default function Settings() {
                     confirmLabel: t('settings.clear_settings'),
                     onConfirm: async () => {
                       await clearSettings();
-                      setCacheCleared(true);
-                      setTimeout(() => setCacheCleared(false), 2000);
+                      showToast(t('toast.cache_cleared'));
                     },
                   })}
                   className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
@@ -635,8 +633,7 @@ export default function Settings() {
                     confirmLabel: t('settings.clear_all'),
                     onConfirm: async () => {
                       await clearAllCache();
-                      setCacheCleared(true);
-                      setTimeout(() => setCacheCleared(false), 2000);
+                      showToast(t('toast.cache_cleared'));
                     },
                   })}
                   className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
@@ -685,16 +682,13 @@ export default function Settings() {
           </section>
         )}
 
-        {saved && (
-          <div className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg z-40">
-            {t('toast.saved')}
-          </div>
-        )}
-        {cacheCleared && (
-          <div className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg z-40">
-            {t('toast.cache_cleared')}
-          </div>
-        )}
+        <div
+          className={`fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg z-40 transition-all duration-300 ease-out ${
+            toast.visible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'
+          }`}
+        >
+          {toast.message}
+        </div>
       </div>
 
       <ConfirmModal
