@@ -122,4 +122,3 @@ export interface ImportReport {
   missing_fields: string[];
   used_fallback_mapping: boolean;
 }
-}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -11,18 +11,10 @@ export default function ImportPage() {
   const queryClient = useQueryClient();
   const { data: decks } = useQuery({ queryKey: ['decks'], queryFn: getDecks });
   const [searchParams] = useSearchParams();
-  const [selectedDeck, setSelectedDeck] = useState('');
+  const [selectedDeck, setSelectedDeck] = useState(searchParams.get('deckId') ?? '');
   const [bulkText, setBulkText] = useState('');
   const [message, setMessage] = useState('');
   const [report, setReport] = useState<ImportReport | null>(null);
-
-  useEffect(() => {
-    const deckId = searchParams.get('deckId');
-    if (!deckId || !decks?.some((deck) => deck.id === deckId)) {
-      return;
-    }
-    setSelectedDeck(deckId);
-  }, [decks, searchParams]);
 
   const importMut = useMutation({
     mutationFn: async () => {
