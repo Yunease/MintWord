@@ -98,6 +98,10 @@ export async function stopTts(): Promise<void> {
   return invoke('stop_tts');
 }
 
+export async function checkNativeTtsVoice(lang: string): Promise<boolean> {
+  return invoke('check_native_tts_voice', { lang });
+}
+
 export async function getPlatform(): Promise<string> {
   return invoke('get_platform');
 }

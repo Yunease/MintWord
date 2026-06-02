@@ -15,6 +15,14 @@ export default function ImportPage() {
   const [bulkText, setBulkText] = useState('');
   const [message, setMessage] = useState('');
   const [report, setReport] = useState<ImportReport | null>(null);
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+
+  function showToast(msg: string) {
+    setToast({ message: msg, visible: true });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, 2000);
+  }
 
   const importMut = useMutation({
     mutationFn: async () => {
@@ -28,7 +36,7 @@ export default function ImportPage() {
     onSuccess: (result) => {
       if (result !== null) {
         setReport(result);
-        setMessage(t('toast.imported', { n: result.imported_count }));
+        showToast(t('toast.imported', { n: result.imported_count }));
         queryClient.invalidateQueries({ queryKey: ['decks'] });
         queryClient.invalidateQueries({ queryKey: ['cards', selectedDeck] });
       }
@@ -43,7 +51,7 @@ export default function ImportPage() {
     mutationFn: () => bulkAddCards(selectedDeck, bulkText),
     onSuccess: (count) => {
       setReport(null);
-      setMessage(t('toast.imported', { n: count }));
+      showToast(t('toast.imported', { n: count }));
       setBulkText('');
       queryClient.invalidateQueries({ queryKey: ['decks'] });
       queryClient.invalidateQueries({ queryKey: ['cards', selectedDeck] });
@@ -146,8 +154,16 @@ export default function ImportPage() {
       </div>
 
       {message && (
-        <div className="text-sm text-center text-blue-600 dark:text-blue-400">{message}</div>
+        <div className="text-sm text-center text-red-600 dark:text-red-400">{message}</div>
       )}
+
+      <div
+        className={`fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-sm shadow-lg z-40 transition-all duration-300 ease-out ${
+          toast.visible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'
+        }`}
+      >
+        {toast.message}
+      </div>
     </div>
   );
 }

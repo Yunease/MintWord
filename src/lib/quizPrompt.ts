@@ -16,6 +16,11 @@ export const DIFFICULTY_LEVELS = [
   'gre',
   'toefl',
   'ielts',
+  'jlpt_n5',
+  'jlpt_n4',
+  'jlpt_n3',
+  'jlpt_n2',
+  'jlpt_n1',
 ] as const;
 
 export type DifficultyLevel = (typeof DIFFICULTY_LEVELS)[number];

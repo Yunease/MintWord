@@ -699,6 +699,11 @@ pub fn stop_tts() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn check_native_tts_voice(lang: String) -> bool {
+    crate::tts::native_tts_voice_available(&lang)
+}
+
+#[tauri::command]
 pub fn get_platform() -> String {
     std::env::consts::OS.to_string()
 }

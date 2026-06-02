@@ -48,6 +48,83 @@ pub fn stop_audio() {
     stop_macos_say();
 }
 
+fn text_contains_japanese(text: &str) -> bool {
+    text.chars().any(|c| {
+        matches!(c,
+            '\u{3040}'..='\u{309F}' | // Hiragana
+            '\u{30A0}'..='\u{30FF}' | // Katakana
+            '\u{FF66}'..='\u{FF9D}'   // Half-width Katakana
+        )
+    })
+}
+
+#[cfg(windows)]
+fn try_set_japanese_voice(synth: &windows::Media::SpeechSynthesis::SpeechSynthesizer) {
+    let voices = match windows::Media::SpeechSynthesis::SpeechSynthesizer::AllVoices() {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    let count = match voices.Size() {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+    for i in 0..count {
+        let voice = match voices.GetAt(i) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let lang = match voice.Language() {
+            Ok(l) => l,
+            Err(_) => continue,
+        };
+        let lang_str = format!("{}", lang).to_lowercase();
+        if lang_str == "ja-jp" || lang_str == "ja" || lang_str.starts_with("ja-") {
+            let _ = synth.SetVoice(&voice);
+            return;
+        }
+    }
+}
+
+#[cfg(windows)]
+fn has_voice_for_language(tag: &str) -> bool {
+    let voices = match windows::Media::SpeechSynthesis::SpeechSynthesizer::AllVoices() {
+        Ok(v) => v,
+        Err(_) => return false,
+    };
+    let count = match voices.Size() {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
+    let tag_lower = tag.to_lowercase();
+    for i in 0..count {
+        let voice = match voices.GetAt(i) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let lang = match voice.Language() {
+            Ok(l) => l,
+            Err(_) => continue,
+        };
+        let lang_str = format!("{}", lang).to_lowercase();
+        if lang_str == tag_lower || lang_str.starts_with(&format!("{}-", tag_lower)) {
+            return true;
+        }
+    }
+    false
+}
+
+pub fn native_tts_voice_available(lang: &str) -> bool {
+    #[cfg(windows)]
+    {
+        has_voice_for_language(lang)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = lang;
+        false
+    }
+}
+
 #[cfg(windows)]
 fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
     use windows::Media::SpeechSynthesis::SpeechSynthesizer;
@@ -59,6 +136,11 @@ fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
 
     let synth = SpeechSynthesizer::new()
         .map_err(|e| format!("Failed to create synthesizer: {}", e))?;
+
+    if text_contains_japanese(text) {
+        try_set_japanese_voice(&synth);
+    }
+
     let stream = synth
         .SynthesizeTextToStreamAsync(&windows::core::HSTRING::from(text))
         .map_err(|e| format!("Synthesize failed: {}", e))?

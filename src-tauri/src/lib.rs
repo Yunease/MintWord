@@ -21,28 +21,34 @@ fn import_bundled_decks(app_dir: &std::path::Path) -> Result<(), String> {
     }
 
     let bundled = vec![
-        ("CET4", include_str!("../../resources/bundled-decks/CET4.csv")),
-        ("CET6", include_str!("../../resources/bundled-decks/CET6.csv")),
-        ("考研", include_str!("../../resources/bundled-decks/考研.csv")),
-        ("GRE", include_str!("../../resources/bundled-decks/GRE.csv")),
-        ("TOEFL", include_str!("../../resources/bundled-decks/TOEFL.csv")),
-        ("IELTS", include_str!("../../resources/bundled-decks/IELTS.csv")),
-        ("高考", include_str!("../../resources/bundled-decks/高考.csv")),
-        ("中考", include_str!("../../resources/bundled-decks/中考.csv")),
+        ("CET4", include_str!("../../resources/bundled-decks/CET4.csv"), "en", "zh"),
+        ("CET6", include_str!("../../resources/bundled-decks/CET6.csv"), "en", "zh"),
+        ("考研", include_str!("../../resources/bundled-decks/考研.csv"), "en", "zh"),
+        ("GRE", include_str!("../../resources/bundled-decks/GRE.csv"), "en", "zh"),
+        ("TOEFL", include_str!("../../resources/bundled-decks/TOEFL.csv"), "en", "zh"),
+        ("IELTS", include_str!("../../resources/bundled-decks/IELTS.csv"), "en", "zh"),
+        ("高考", include_str!("../../resources/bundled-decks/高考.csv"), "en", "zh"),
+        ("中考", include_str!("../../resources/bundled-decks/中考.csv"), "en", "zh"),
+        ("JLPT-N5", include_str!("../../resources/bundled-decks/JLPT-N5.csv"), "ja", "zh"),
+        ("JLPT-N4", include_str!("../../resources/bundled-decks/JLPT-N4.csv"), "ja", "zh"),
+        ("JLPT-N3", include_str!("../../resources/bundled-decks/JLPT-N3.csv"), "ja", "zh"),
+        ("JLPT-N2", include_str!("../../resources/bundled-decks/JLPT-N2.csv"), "ja", "zh"),
+        ("JLPT-N1", include_str!("../../resources/bundled-decks/JLPT-N1.csv"), "ja", "zh"),
     ];
 
     let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
 
-    for (name, csv_data) in &bundled {
+    for (name, csv_data, lang_from, lang_to) in &bundled {
         let id = format!("builtin-{}", name);
         conn.execute(
             "INSERT INTO decks (id, name, description, language_from, language_to, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            rusqlite::params![id, name, format!("内置词库 - {}", name), "en", "zh", now, now],
+            rusqlite::params![id, name, format!("内置词库 - {}", name), lang_from, lang_to, now, now],
         ).map_err(|e| e.to_string())?;
 
         importer::import_bundled_csv(&mut *conn, csv_data, &id)?;
     }
+
     Ok(())
 }
 
@@ -99,6 +105,7 @@ pub fn run() {
             commands::speak_text,
             commands::speak_ai,
             commands::stop_tts,
+            commands::check_native_tts_voice,
             commands::get_platform,
             commands::get_setting,
             commands::set_setting,

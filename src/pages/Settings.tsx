@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt, clearLearningProgress, clearReviewLogs, clearSettings, clearAllCache } from '../lib/api';
+import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt, clearLearningProgress, clearReviewLogs, clearSettings, clearAllCache, checkNativeTtsVoice } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
 import ConfirmModal from '../components/ConfirmModal';
@@ -36,6 +36,7 @@ export default function Settings() {
   const [fsrsParams, setFsrsParams] = useState('');
   const [showFsrsAdvanced, setShowFsrsAdvanced] = useState(false);
   const [platform, setPlatform] = useState('unknown');
+  const [japaneseTtsAvailable, setJapaneseTtsAvailable] = useState(true);
 
   const [aiView, setAiView] = useState<'list' | 'add' | 'detail'>('list');
   const [aiEditIndex, setAiEditIndex] = useState<number>(-1);
@@ -49,7 +50,13 @@ export default function Settings() {
   } | null>(null);
 
   useEffect(() => {
-    getPlatform().then(setPlatform).catch(() => undefined);
+    getPlatform().then(async (p) => {
+      setPlatform(p);
+      if (p === 'windows') {
+        const ok = await checkNativeTtsVoice('ja').catch(() => false);
+        setJapaneseTtsAvailable(ok);
+      }
+    }).catch(() => undefined);
     (async () => {
       const url = await getSetting('tts_ai_url');
       if (url) setTtsUrl(url);
@@ -292,6 +299,12 @@ export default function Settings() {
                   {t('settings.tts_test')}
                 </button>
               </div>
+
+              {platform === 'windows' && !japaneseTtsAvailable && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3 text-xs text-yellow-800 dark:text-yellow-200">
+                  {t('tts.no_japanese_voice')}
+                </div>
+              )}
             </div>
 
             <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
