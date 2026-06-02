@@ -1,5 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport, Composition, CompositionSummary, CompositionReview } from '../types';
 
 const TAURI_AVAILABLE = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -134,6 +134,48 @@ export async function deleteArticle(id: string): Promise<void> {
 
 export async function importArticleTxt(filePath: string): Promise<Article> {
   return invoke('import_article_txt', { filePath });
+}
+
+// === Composition ===
+
+export async function getCompositions(): Promise<CompositionSummary[]> {
+  return invoke('get_compositions');
+}
+
+export async function getComposition(id: string): Promise<Composition> {
+  return invoke('get_composition', { id });
+}
+
+export async function createComposition(title: string, content: string, source: string): Promise<Composition> {
+  return invoke('create_composition', { title, content, source });
+}
+
+export async function deleteComposition(id: string): Promise<void> {
+  return invoke('delete_composition', { id });
+}
+
+export async function importCompositionTxt(filePath: string): Promise<Composition> {
+  return invoke('import_composition_txt', { filePath });
+}
+
+export async function reviewCompositionWithConfig(compositionId: string, config: ProviderConfig, prompt?: string): Promise<CompositionReview> {
+  return invoke('review_composition_with_config', { compositionId, config, prompt: prompt ?? null });
+}
+
+export async function saveCompositionReview(compositionId: string, review: CompositionReview): Promise<void> {
+  return invoke('save_composition_review', { compositionId, review });
+}
+
+export async function getCompositionReview(compositionId: string): Promise<CompositionReview> {
+  return invoke('get_composition_review', { compositionId });
+}
+
+export async function getCompositionReviewPrompt(): Promise<string> {
+  return invoke('get_composition_review_prompt');
+}
+
+export async function setCompositionReviewPrompt(prompt: string): Promise<void> {
+  return invoke('set_composition_review_prompt', { prompt });
 }
 
 // === AI Quiz (legacy — kept for backward compatibility) ===

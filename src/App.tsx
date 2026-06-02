@@ -10,6 +10,7 @@ import Settings from './pages/Settings';
 import ImportPage from './pages/Import';
 import Library from './pages/Library';
 import ArticleView from './pages/ArticleView';
+import CompositionView from './pages/CompositionView';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/import" element={<ImportPage />} />
             <Route path="/library" element={<Library />} />
             <Route path="/library/:id" element={<ArticleView />} />
+            <Route path="/composition/:id" element={<CompositionView />} />
           </Routes>
         </Layout>
       </BrowserRouter>

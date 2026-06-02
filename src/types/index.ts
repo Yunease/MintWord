@@ -106,6 +106,35 @@ export interface ProviderConfig {
   subOptionValues?: Record<string, string>;
 }
 
+export interface CompositionSummary {
+  id: string;
+  title: string;
+  source: string;
+  created_at: string;
+  has_review: boolean;
+}
+
+export interface Composition {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  created_at: string;
+  review: CompositionReview | null;
+}
+
+export interface CompositionReview {
+  score: number;
+  corrections: Correction[];
+  suggestions: string[];
+}
+
+export interface Correction {
+  original: string;
+  corrected: string;
+  explanation: string;
+}
+
 export interface ImportFieldMapping {
   front: string[];
   back: string[];

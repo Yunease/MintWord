@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt, clearLearningProgress, clearReviewLogs, clearSettings, clearAllCache, checkNativeTtsVoice } from '../lib/api';
+import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt, setCompositionReviewPrompt, clearLearningProgress, clearReviewLogs, clearSettings, clearAllCache, checkNativeTtsVoice } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
 import ConfirmModal from '../components/ConfirmModal';
@@ -7,16 +7,20 @@ import AiModelList from '../components/ai/AiModelList';
 import AiAddModel from '../components/ai/AiAddModel';
 import AiModelDetail from '../components/ai/AiModelDetail';
 import QuizConfigPanel from '../components/QuizConfig';
+import CompositionReviewConfig from '../components/CompositionReviewConfig';
 import { buildPrompt, DEFAULT_QUIZ_CONFIG, loadQuizConfig, saveQuizConfig } from '../lib/quizPrompt';
 import type { QuizConfig } from '../lib/quizPrompt';
+import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, saveCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
+import type { CompositionConfig } from '../lib/compositionPrompt';
 
-type Theme = 'mint' | 'ocean' | 'warm' | 'lavender';
+type Theme = 'mint' | 'ocean' | 'warm' | 'lavender' | 'sakura';
 
 const THEMES: { id: Theme; labelKey: string; color: string }[] = [
   { id: 'mint', labelKey: 'settings.theme_mint', color: '#10b981' },
   { id: 'ocean', labelKey: 'settings.theme_ocean', color: '#3b82f6' },
   { id: 'warm', labelKey: 'settings.theme_warm', color: '#f59e0b' },
   { id: 'lavender', labelKey: 'settings.theme_lavender', color: '#8b5cf6' },
+  { id: 'sakura', labelKey: 'settings.theme_sakura', color: '#f472b6' },
 ];
 
 export default function Settings() {
@@ -41,6 +45,7 @@ export default function Settings() {
   const [aiView, setAiView] = useState<'list' | 'add' | 'detail'>('list');
   const [aiEditIndex, setAiEditIndex] = useState<number>(-1);
   const [quizConfig, setQuizConfig] = useState<QuizConfig>(DEFAULT_QUIZ_CONFIG);
+  const [compositionConfig, setCompositionConfig] = useState<CompositionConfig>(DEFAULT_COMPOSITION_CONFIG);
 
   const [confirmModal, setConfirmModal] = useState<{
     title: string;
@@ -68,13 +73,15 @@ export default function Settings() {
       if (model) setTtsModel(model);
       const savedQuizConfig = await loadQuizConfig();
       setQuizConfig(savedQuizConfig);
+      const savedCompositionConfig = await loadCompositionConfig();
+      setCompositionConfig(savedCompositionConfig);
       const savedLang = await getSetting('lang');
       if (savedLang === 'en' || savedLang === 'zh' || savedLang === 'zh-TW' || savedLang === 'ja' || savedLang === 'ko') {
         setLangState(savedLang);
         setLang(savedLang);
       }
       const savedTheme = await getSetting('theme');
-      if (savedTheme === 'ocean' || savedTheme === 'warm' || savedTheme === 'lavender') {
+      if (savedTheme === 'ocean' || savedTheme === 'warm' || savedTheme === 'lavender' || savedTheme === 'sakura') {
         setTheme(savedTheme);
       }
       const savedDark = await getSetting('dark_mode');
@@ -423,6 +430,23 @@ export default function Settings() {
                       saveQuizConfig(newConfig);
                       const prompt = buildPrompt(newConfig);
                       setAiPrompt(prompt);
+                    }}
+                  />
+                </section>
+
+                <section className="space-y-4">
+                  <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    {t('settings.composition_review')}
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.composition_review_desc')}</p>
+                  <CompositionReviewConfig
+                    showDifficulty={false}
+                    config={compositionConfig}
+                    onChange={(newConfig) => {
+                      setCompositionConfig(newConfig);
+                      saveCompositionConfig(newConfig);
+                      const prompt = buildCompositionPrompt(newConfig);
+                      setCompositionReviewPrompt(prompt);
                     }}
                   />
                 </section>

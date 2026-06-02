@@ -31,6 +31,13 @@
   --color-primary-dark: #5b21b6;
 }
 
+.theme-sakura {
+  --color-primary: #f472b6;
+  --color-primary-hover: #ec4899;
+  --color-primary-light: #fce7f3;
+  --color-primary-dark: #db2777;
+}
+
 .dark {
   --color-border: #374151;
   --color-surface: #111827;

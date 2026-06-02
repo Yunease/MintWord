@@ -799,6 +799,96 @@ pub fn import_article_txt(db: State<Database>, file_path: String) -> Result<libr
     library::import_txt(&db.app_dir, &file_path)
 }
 
+// === Composition Commands ===
+
+#[tauri::command]
+pub fn get_compositions(db: State<Database>) -> Result<Vec<library::CompositionSummary>, String> {
+    library::list_compositions(&db.app_dir)
+}
+
+#[tauri::command]
+pub fn get_composition(db: State<Database>, id: String) -> Result<library::Composition, String> {
+    library::get_composition(&db.app_dir, &id)
+}
+
+#[tauri::command]
+pub fn create_composition(db: State<Database>, title: String, content: String, source: String) -> Result<library::Composition, String> {
+    library::create_composition(&db.app_dir, title, content, source)
+}
+
+#[tauri::command]
+pub fn delete_composition(db: State<Database>, id: String) -> Result<(), String> {
+    library::delete_composition(&db.app_dir, &id)
+}
+
+#[tauri::command]
+pub fn import_composition_txt(db: State<Database>, file_path: String) -> Result<library::Composition, String> {
+    library::import_composition_txt(&db.app_dir, &file_path)
+}
+
+#[tauri::command]
+pub async fn review_composition_with_config(
+    db: State<'_, Database>,
+    composition_id: String,
+    config: ai::ProviderConfig,
+    prompt: Option<String>,
+) -> Result<ai::CompositionReview, String> {
+    let composition = library::get_composition(&db.app_dir, &composition_id)?;
+
+    let system_prompt = match prompt {
+        Some(p) if !p.is_empty() => p,
+        _ => {
+            let conn = db.conn.lock().map_err(|e| e.to_string())?;
+            let result = conn.query_row(
+                "SELECT value FROM settings WHERE key = 'composition_review_prompt'",
+                [],
+                |row| row.get::<_, String>(0),
+            );
+            match result {
+                Ok(val) if !val.is_empty() => val,
+                _ => ai::COMPOSITION_REVIEW_PROMPT.to_string(),
+            }
+        }
+    };
+
+    ai::review_composition(&config, &system_prompt, &composition.content).await
+}
+
+#[tauri::command]
+pub fn save_composition_review(db: State<Database>, composition_id: String, review: ai::CompositionReview) -> Result<(), String> {
+    library::save_composition_review(&db.app_dir, &composition_id, review)
+}
+
+#[tauri::command]
+pub fn get_composition_review(db: State<Database>, composition_id: String) -> Result<ai::CompositionReview, String> {
+    library::get_composition_review(&db.app_dir, &composition_id)
+}
+
+#[tauri::command]
+pub fn get_composition_review_prompt(db: State<Database>) -> Result<String, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let result = conn.query_row(
+        "SELECT value FROM settings WHERE key = 'composition_review_prompt'",
+        [],
+        |row| row.get::<_, String>(0),
+    );
+    match result {
+        Ok(val) if !val.is_empty() => Ok(val),
+        _ => Ok(ai::COMPOSITION_REVIEW_PROMPT.to_string()),
+    }
+}
+
+#[tauri::command]
+pub fn set_composition_review_prompt(db: State<Database>, prompt: String) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES ('composition_review_prompt', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = ?1",
+        rusqlite::params![prompt],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // === AI Commands ===
 
 #[tauri::command]
