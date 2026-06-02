@@ -139,6 +139,7 @@ pub fn run() {
             commands::clear_review_logs,
             commands::clear_settings,
             commands::clear_all_cache,
+
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

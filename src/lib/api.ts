@@ -260,3 +260,4 @@ export async function clearSettings(): Promise<void> {
 export async function clearAllCache(): Promise<void> {
   return invoke('clear_all_cache');
 }
+

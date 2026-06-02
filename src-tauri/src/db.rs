@@ -90,7 +90,6 @@ impl Database {
                 .ok();
             conn.execute_batch("PRAGMA user_version = 2").ok();
         }
-
         Ok(())
     }
 }

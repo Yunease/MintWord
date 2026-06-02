@@ -4,9 +4,9 @@ import { useParams, Link } from 'react-router-dom';
 import { getComposition, reviewCompositionWithConfig, saveCompositionReview, getSetting } from '../lib/api';
 import { t } from '../lib/i18n';
 import CompositionReviewConfig from '../components/CompositionReviewConfig';
-import { buildCompositionPrompt, DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, saveCompositionConfig } from '../lib/compositionPrompt';
-import type { CompositionReview, ProviderConfig } from '../types';
+import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
 import type { CompositionConfig } from '../lib/compositionPrompt';
+import type { ProviderConfig, CompositionReview } from '../types';
 
 export default function CompositionView() {
   const { id } = useParams<{ id: string }>();
@@ -20,29 +20,34 @@ export default function CompositionView() {
   const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState('');
   const [config, setConfig] = useState<CompositionConfig>(DEFAULT_COMPOSITION_CONFIG);
-
-  const review = composition?.review ?? manualReview;
+  const [readingMode, setReadingMode] = useState(false);
 
   useEffect(() => {
     loadCompositionConfig().then(setConfig);
   }, []);
 
+  useEffect(() => {
+    if (composition?.review) {
+      setManualReview(composition.review); // eslint-disable-line react-hooks/set-state-in-effect
+    }
+  }, [composition]);
+
+  const review = composition?.review ?? manualReview;
+
   async function handleReview() {
     setReviewing(true);
     setError('');
-    saveCompositionConfig(config);
-    const prompt = buildCompositionPrompt(config);
-
     try {
+      const prompt = buildCompositionPrompt(config);
       const configListStr = await getSetting('ai_provider_config_list');
       if (configListStr) {
         try {
           const configList: ProviderConfig[] = JSON.parse(configListStr);
           if (configList.length > 0) {
             const providerConfig = configList[0];
-            const result = await reviewCompositionWithConfig(id!, providerConfig, prompt);
-            await saveCompositionReview(id!, result);
-            setManualReview(result);
+            const r = await reviewCompositionWithConfig(id!, providerConfig, prompt);
+            await saveCompositionReview(id!, r);
+            setManualReview(r);
             setReviewing(false);
             return;
           }
@@ -62,17 +67,44 @@ export default function CompositionView() {
   if (!composition) {
     return (
       <div className="text-center py-16 space-y-4">
-        <p className="text-gray-400">Composition not found</p>
+        <p className="text-gray-400">{t('composition.title')}</p>
         <Link to="/library" className="text-primary hover:underline text-sm">{t('composition.back')}</Link>
+      </div>
+    );
+  }
+
+  if (readingMode) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-white dark:bg-gray-950 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-white dark:bg-gray-950 shrink-0">
+          <h1 className="text-lg font-bold truncate">{composition.title}</h1>
+          <button
+            onClick={() => setReadingMode(false)}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+          >
+            {t('reading.exit')}
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-8 md:p-12">
+          <div className="text-xl leading-10 whitespace-pre-wrap max-w-4xl mx-auto">{composition.content}</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <Link to="/library" className="text-sm text-primary hover:underline inline-block">
-        &larr; {t('composition.back')}
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link to="/library" className="text-sm text-primary hover:underline inline-block">
+          &larr; {t('composition.back')}
+        </Link>
+        <button
+          onClick={() => setReadingMode(true)}
+          className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
+        >
+          {t('reading.enter')}
+        </button>
+      </div>
 
       <div>
         <h1 className="text-2xl font-bold">{composition.title}</h1>

@@ -877,7 +877,6 @@ pub fn get_composition_review_prompt(db: State<Database>) -> Result<String, Stri
         _ => Ok(ai::COMPOSITION_REVIEW_PROMPT.to_string()),
     }
 }
-
 #[tauri::command]
 pub fn set_composition_review_prompt(db: State<Database>, prompt: String) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
