@@ -47,6 +47,8 @@ pub struct StudyCard {
     pub phonetic: String,
     pub example_sentence: String,
     pub notes: String,
+    pub language_from: String,
+    pub language_to: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -211,9 +213,12 @@ pub fn get_study_cards(db: State<Database>, deck_id: String, limit: i32) -> Resu
     };
 
     let sql = format!(
-        "SELECT id, deck_id, front, back, phonetic, example_sentence, notes
-         FROM cards
-         WHERE deck_id = ?1 AND next_review_at <= ?2 AND mastered = 0
+        "SELECT c.id, c.deck_id, c.front, c.back, c.phonetic, c.example_sentence, c.notes,
+                COALESCE(d.language_from, 'en') as language_from,
+                COALESCE(d.language_to, 'zh') as language_to
+         FROM cards c
+         LEFT JOIN decks d ON d.id = c.deck_id
+         WHERE c.deck_id = ?1 AND c.next_review_at <= ?2 AND c.mastered = 0
          {}
          LIMIT ?3",
         order_clause
@@ -229,6 +234,8 @@ pub fn get_study_cards(db: State<Database>, deck_id: String, limit: i32) -> Resu
             phonetic: row.get(4)?,
             example_sentence: row.get(5)?,
             notes: row.get(6)?,
+            language_from: row.get(7)?,
+            language_to: row.get(8)?,
         })
     }).map_err(|e| e.to_string())?
     .collect::<Result<Vec<_>, _>>()
@@ -628,9 +635,17 @@ pub fn import_csv_file(
     db: State<Database>,
     deck_id: String,
     file_path: String,
+    field_mapping: Option<crate::importer::FieldMappingSelection>,
 ) -> Result<crate::importer::ImportReport, String> {
     let mut conn = db.conn.lock().map_err(|e| e.to_string())?;
-    crate::importer::import_file(&mut *conn, &deck_id, &file_path)
+    crate::importer::import_file(&mut *conn, &deck_id, &file_path, field_mapping)
+}
+
+#[tauri::command]
+pub fn preview_import_file(
+    file_path: String,
+) -> Result<crate::importer::ImportPreview, String> {
+    crate::importer::preview_import_file(&file_path)
 }
 
 #[tauri::command]
@@ -681,8 +696,8 @@ pub fn bulk_add_cards(db: State<Database>, deck_id: String, text: String) -> Res
 }
 
 #[tauri::command]
-pub fn speak_text(text: String) -> Result<(), String> {
-    crate::tts::speak_text_bg(text);
+pub fn speak_text(text: String, lang: String) -> Result<(), String> {
+    crate::tts::speak_text_bg(text, lang);
     Ok(())
 }
 

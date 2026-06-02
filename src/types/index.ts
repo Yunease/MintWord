@@ -34,6 +34,8 @@ export interface StudyCard {
   phonetic: string;
   example_sentence: string;
   notes: string;
+  language_from: string;
+  language_to: string;
 }
 
 export interface ReviewStats {
@@ -150,4 +152,19 @@ export interface ImportReport {
   matched_fields: ImportFieldMapping;
   missing_fields: string[];
   used_fallback_mapping: boolean;
+}
+
+export interface FieldMappingSelection {
+  front: string | null;
+  back: string | null;
+  phonetic: string | null;
+  example_sentence: string | null;
+}
+
+export interface ImportPreview {
+  source_format: string;
+  columns: string[];
+  total_rows: number;
+  sample_rows: string[][];
+  smart_mapping: FieldMappingSelection;
 }

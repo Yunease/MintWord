@@ -101,6 +101,7 @@ pub fn run() {
             commands::get_deck_due_count,
             commands::get_stats,
             commands::import_csv_file,
+            commands::preview_import_file,
             commands::bulk_add_cards,
             commands::speak_text,
             commands::speak_ai,

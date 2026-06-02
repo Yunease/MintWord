@@ -116,7 +116,7 @@ export default function Study() {
           return;
         }
       }
-      await speakText(current.front);
+      await speakText(current.front, current.language_from);
     } catch { /* ignore TTS errors */ }
   }
 

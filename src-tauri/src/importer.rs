@@ -30,6 +30,23 @@ pub struct ImportReport {
     pub used_fallback_mapping: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ImportPreview {
+    pub source_format: String,
+    pub columns: Vec<String>,
+    pub total_rows: i32,
+    pub sample_rows: Vec<Vec<String>>,
+    pub smart_mapping: FieldMappingSelection,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct FieldMappingSelection {
+    pub front: Option<String>,
+    pub back: Option<String>,
+    pub phonetic: Option<String>,
+    pub example_sentence: Option<String>,
+}
+
 #[derive(Clone, Debug, Default)]
 struct ResolvedFieldMapping {
     front_idx: Option<usize>,
@@ -77,7 +94,12 @@ pub fn normalize_newlines(s: &str) -> String {
     out
 }
 
-pub fn import_file(conn: &mut Connection, deck_id: &str, file_path: &str) -> Result<ImportReport, String> {
+pub fn import_file(
+    conn: &mut Connection,
+    deck_id: &str,
+    file_path: &str,
+    field_mapping: Option<FieldMappingSelection>,
+) -> Result<ImportReport, String> {
     let extension = Path::new(file_path)
         .extension()
         .and_then(|ext| ext.to_str())
@@ -85,13 +107,46 @@ pub fn import_file(conn: &mut Connection, deck_id: &str, file_path: &str) -> Res
         .to_ascii_lowercase();
 
     match extension.as_str() {
-        "csv" => import_csv(conn, deck_id, file_path),
-        "apkg" => import_apkg(conn, deck_id, file_path),
+        "csv" => import_csv(conn, deck_id, file_path, field_mapping),
+        "apkg" => import_apkg(conn, deck_id, file_path, field_mapping),
         _ => Err(format!("Unsupported import file type: .{}", extension)),
     }
 }
 
-pub fn import_csv(conn: &mut Connection, deck_id: &str, file_path: &str) -> Result<ImportReport, String> {
+pub fn preview_import_file(file_path: &str) -> Result<ImportPreview, String> {
+    let extension = Path::new(file_path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    match extension.as_str() {
+        "csv" => preview_csv(file_path),
+        "apkg" => preview_apkg(file_path),
+        _ => Err(format!("Unsupported import file type: .{}", extension)),
+    }
+}
+
+fn selection_to_indices(columns: &[String], selection: &FieldMappingSelection) -> ResolvedFieldMapping {
+    fn col_index(columns: &[String], name: &Option<String>) -> Option<usize> {
+        name.as_ref()
+            .and_then(|n| columns.iter().position(|c| c == n))
+    }
+    ResolvedFieldMapping {
+        front_idx: col_index(columns, &selection.front),
+        back_idx: col_index(columns, &selection.back),
+        phonetic_idx: col_index(columns, &selection.phonetic),
+        example_idx: col_index(columns, &selection.example_sentence),
+        used_fallback_mapping: false,
+    }
+}
+
+pub fn import_csv(
+    conn: &mut Connection,
+    deck_id: &str,
+    file_path: &str,
+    field_mapping: Option<FieldMappingSelection>,
+) -> Result<ImportReport, String> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(true)
         .flexible(true)
@@ -105,7 +160,11 @@ pub fn import_csv(conn: &mut Connection, deck_id: &str, file_path: &str) -> Resu
         .map(|h| h.to_string())
         .collect::<Vec<_>>();
 
-    let mapping = resolve_field_mapping(&headers)?;
+    let mapping = if let Some(ref sel) = field_mapping {
+        selection_to_indices(&headers, sel)
+    } else {
+        resolve_field_mapping(&headers)?
+    };
 
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
@@ -153,7 +212,12 @@ pub fn import_bundled_csv(conn: &mut Connection, csv_data: &str, deck_id: &str) 
     Ok(count)
 }
 
-fn import_apkg(conn: &mut Connection, deck_id: &str, file_path: &str) -> Result<ImportReport, String> {
+fn import_apkg(
+    conn: &mut Connection,
+    deck_id: &str,
+    file_path: &str,
+    field_mapping: Option<FieldMappingSelection>,
+) -> Result<ImportReport, String> {
     let file = File::open(file_path).map_err(|e| format!("Failed to open APKG: {}", e))?;
     let mut archive = ZipArchive::new(file).map_err(|e| format!("Failed to read APKG: {}", e))?;
     let collection_name = find_collection_entry(&mut archive)
@@ -206,7 +270,13 @@ fn import_apkg(conn: &mut Connection, deck_id: &str, file_path: &str) -> Result<
             .get(&mid)
             .cloned()
             .unwrap_or_else(|| (0..split_anki_fields(&flds).len()).map(|idx| format!("field{}", idx + 1)).collect());
-        let mapping = resolve_field_mapping(&field_names)?;
+        let mapping = if let Some(ref sel) = field_mapping {
+            selection_to_indices(&field_names, sel)
+        } else {
+            let m = resolve_field_mapping(&field_names)?;
+            used_fallback_mapping |= m.used_fallback_mapping;
+            m
+        };
         let values = split_anki_fields(&flds)
             .into_iter()
             .map(|value| clean_import_text(&value))
@@ -304,6 +374,132 @@ fn insert_card(
     )
     .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+fn preview_csv(file_path: &str) -> Result<ImportPreview, String> {
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .flexible(true)
+        .from_path(file_path)
+        .map_err(|e| format!("Failed to open CSV: {}", e))?;
+
+    let columns = reader
+        .headers()
+        .map_err(|e| format!("Failed to read headers: {}", e))?
+        .iter()
+        .map(|h| h.to_string())
+        .collect::<Vec<_>>();
+
+    let mapping = resolve_field_mapping(&columns)?;
+
+    let all_records: Vec<Vec<String>> = reader
+        .records()
+        .filter_map(|r| r.ok())
+        .map(|r| r.iter().map(|v| v.to_string()).collect())
+        .collect();
+
+    let total_rows = all_records.len() as i32;
+    let sample_rows = all_records.into_iter().take(5).collect();
+
+    Ok(ImportPreview {
+        source_format: "csv".to_string(),
+        columns: columns.clone(),
+        total_rows,
+        sample_rows,
+        smart_mapping: FieldMappingSelection {
+            front: mapping.front_idx.map(|i| columns[i].clone()),
+            back: mapping.back_idx.map(|i| columns[i].clone()),
+            phonetic: mapping.phonetic_idx.map(|i| columns[i].clone()),
+            example_sentence: mapping.example_idx.map(|i| columns[i].clone()),
+        },
+    })
+}
+
+fn preview_apkg(file_path: &str) -> Result<ImportPreview, String> {
+    let file = File::open(file_path).map_err(|e| format!("Failed to open APKG: {}", e))?;
+    let mut archive = ZipArchive::new(file).map_err(|e| format!("Failed to read APKG: {}", e))?;
+    let collection_name = find_collection_entry(&mut archive)
+        .ok_or_else(|| "APKG does not contain collection.anki2 or collection.anki21".to_string())?;
+
+    let mut temp_file = NamedTempFile::new().map_err(|e| format!("Failed to create temp DB: {}", e))?;
+    {
+        let mut collection = archive
+            .by_name(&collection_name)
+            .map_err(|e| format!("Failed to read collection from APKG: {}", e))?;
+        let mut buf = Vec::new();
+        collection
+            .read_to_end(&mut buf)
+            .map_err(|e| format!("Failed to extract collection DB: {}", e))?;
+        temp_file
+            .write_all(&buf)
+            .map_err(|e| format!("Failed to write temp collection DB: {}", e))?;
+        temp_file
+            .flush()
+            .map_err(|e| format!("Failed to flush temp collection DB: {}", e))?;
+    }
+
+    let anki_conn = Connection::open_with_flags(
+        temp_file.path(),
+        OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .map_err(|e| format!("Failed to open collection DB: {}", e))?;
+
+    let model_map = load_anki_models(&anki_conn)?;
+    let mut stmt = anki_conn
+        .prepare("SELECT mid, flds FROM notes")
+        .map_err(|e| format!("Failed to read Anki notes: {}", e))?;
+    let mut rows = stmt.query([]).map_err(|e| format!("Failed to query Anki notes: {}", e))?;
+
+    let mut columns = Vec::new();
+    let mut sample_rows: Vec<Vec<String>> = Vec::new();
+
+    while let Some(row) = rows.next().map_err(|e| format!("Failed to iterate Anki notes: {}", e))? {
+        let mid: i64 = row.get(0).map_err(|e| format!("Failed to read Anki note model: {}", e))?;
+        let flds: String = row.get(1).map_err(|e| format!("Failed to read Anki note fields: {}", e))?;
+        let field_names = model_map
+            .get(&mid)
+            .cloned()
+            .unwrap_or_else(|| (0..split_anki_fields(&flds).len()).map(|idx| format!("field{}", idx + 1)).collect());
+
+        if columns.is_empty() {
+            columns = field_names.clone();
+        }
+
+        if sample_rows.len() < 5 {
+            let values = split_anki_fields(&flds)
+                .into_iter()
+                .map(|value| clean_import_text(&value))
+                .collect::<Vec<_>>();
+            sample_rows.push(values);
+        }
+
+        if !columns.is_empty() && sample_rows.len() >= 5 {
+            break;
+        }
+    }
+
+    let mapping = resolve_field_mapping(&columns).unwrap_or(ResolvedFieldMapping {
+        front_idx: Some(0),
+        back_idx: Some(1),
+        ..Default::default()
+    });
+
+    let total_rows: i32 = anki_conn
+        .query_row("SELECT COUNT(*) FROM notes", [], |r| r.get(0))
+        .unwrap_or(0);
+
+    Ok(ImportPreview {
+        source_format: "apkg".to_string(),
+        columns: columns.clone(),
+        total_rows,
+        sample_rows,
+        smart_mapping: FieldMappingSelection {
+            front: mapping.front_idx.and_then(|i| columns.get(i).cloned()),
+            back: mapping.back_idx.and_then(|i| columns.get(i).cloned()),
+            phonetic: mapping.phonetic_idx.and_then(|i| columns.get(i).cloned()),
+            example_sentence: mapping.example_idx.and_then(|i| columns.get(i).cloned()),
+        },
+    })
 }
 
 fn resolve_field_mapping(field_names: &[String]) -> Result<ResolvedFieldMapping, String> {
@@ -532,6 +728,11 @@ const FRONT_FIELD_ALIASES: &[&str] = &[
     "英语",
     "正面",
     "题面",
+    "日文",
+    "日本語",
+    "単語",
+    "見出し",
+    "表現",
 ];
 
 const BACK_FIELD_ALIASES: &[&str] = &[
@@ -715,6 +916,7 @@ mod tests {
             &mut mint_conn,
             "deck-1",
             apkg_path.to_str().expect("apkg path"),
+            None,
         )
         .expect("import apkg");
 
@@ -734,5 +936,128 @@ mod tests {
         assert_eq!(row.0, "warehouse");
         assert_eq!(row.1, "n. 仓库\nvt. 储存");
         assert_eq!(row.2, "/ˈwerhaʊs/");
+    }
+
+    #[test]
+    fn resolves_japanese_field_names_not_sort_order() {
+        let mapping = resolve_field_mapping(&[
+            "排序编号".to_string(),
+            "日文".to_string(),
+            "词性".to_string(),
+            "释义".to_string(),
+            "课号".to_string(),
+            "音频".to_string(),
+        ])
+        .expect("mapping should resolve");
+        assert_eq!(mapping.front_idx, Some(1), "front should be 日文 (index 1), not 排序编号");
+        assert_eq!(mapping.back_idx, Some(3), "back should be 释义 (index 3)");
+        assert!(!mapping.used_fallback_mapping);
+    }
+
+    #[test]
+    fn imports_japanese_apkg_with_sort_order_field() {
+        let temp_dir = tempfile::tempdir().expect("temp dir");
+        let collection_path = temp_dir.path().join("collection.anki2");
+        let apkg_path = temp_dir.path().join("jp_sample.apkg");
+
+        {
+            let collection_conn = Connection::open(&collection_path).expect("open temp collection");
+            collection_conn
+                .execute("CREATE TABLE col (models TEXT NOT NULL)", [])
+                .expect("create col");
+            collection_conn
+                .execute("CREATE TABLE notes (mid INTEGER NOT NULL, flds TEXT NOT NULL)", [])
+                .expect("create notes");
+            let models = r#"{"1606564700975":{"flds":[
+                {"name":"排序编号"},{"name":"日文"},{"name":"词性"},
+                {"name":"释义"},{"name":"课号"},{"name":"音频"}
+            ]}}"#;
+            collection_conn
+                .execute("INSERT INTO col (models) VALUES (?1)", [models])
+                .expect("insert models");
+            collection_conn
+                .execute(
+                    "INSERT INTO notes (mid, flds) VALUES (?1, ?2)",
+                    rusqlite::params![
+                        1606564700975_i64,
+                        "0000\u{1f}中国人[ちゅうごくじん]\u{1f}[名]\u{1f}中国人\u{1f}01\u{1f}[sound:book01-lesson01-00.mp3]"
+                    ],
+                )
+                .expect("insert note");
+        }
+
+        {
+            let mut zip_file = File::create(&apkg_path).expect("create apkg");
+            let mut zip = zip::ZipWriter::new(&mut zip_file);
+            zip.start_file("collection.anki2", SimpleFileOptions::default())
+                .expect("start collection entry");
+            let bytes = std::fs::read(&collection_path).expect("read collection");
+            zip.write_all(&bytes).expect("write collection");
+            zip.finish().expect("finish zip");
+        }
+
+        let mut mint_conn = Connection::open_in_memory().expect("open mint db");
+        mint_conn
+            .execute(
+                "CREATE TABLE decks (
+                    id TEXT PRIMARY KEY,
+                    updated_at TEXT NOT NULL,
+                    card_count INTEGER NOT NULL DEFAULT 0
+                )",
+                [],
+            )
+            .expect("create decks");
+        mint_conn
+            .execute(
+                "CREATE TABLE cards (
+                    id TEXT PRIMARY KEY,
+                    deck_id TEXT NOT NULL,
+                    front TEXT NOT NULL,
+                    back TEXT NOT NULL,
+                    phonetic TEXT NOT NULL DEFAULT '',
+                    example_sentence TEXT NOT NULL DEFAULT '',
+                    ease_factor REAL DEFAULT 2.5,
+                    interval INTEGER DEFAULT 0,
+                    repetitions INTEGER DEFAULT 0,
+                    stability REAL DEFAULT 0,
+                    difficulty REAL DEFAULT 0,
+                    lapses INTEGER DEFAULT 0,
+                    fsrs_state INTEGER DEFAULT 0,
+                    next_review_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )",
+                [],
+            )
+            .expect("create cards");
+        mint_conn
+            .execute(
+                "INSERT INTO decks (id, updated_at, card_count) VALUES ('deck-1', '2026-01-01T00:00:00.000Z', 0)",
+                [],
+            )
+            .expect("insert deck");
+
+        let report = import_file(
+            &mut mint_conn,
+            "deck-1",
+            apkg_path.to_str().expect("apkg path"),
+            None,
+        )
+        .expect("import apkg");
+
+        assert_eq!(report.source_format, "apkg");
+        assert_eq!(report.imported_count, 1);
+        assert_eq!(report.matched_fields.front, vec!["日文"]);
+        assert_eq!(report.matched_fields.back, vec!["释义"]);
+
+        let row: (String, String) = mint_conn
+            .query_row(
+                "SELECT front, back FROM cards WHERE deck_id = 'deck-1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("read imported card");
+        assert_eq!(row.0, "中国人[ちゅうごくじん]", "front should be Japanese word, not sort number");
+        assert_eq!(row.1, "中国人");
     }
 }

@@ -19,10 +19,10 @@ static TTS_GEN: AtomicU64 = AtomicU64::new(0);
 #[cfg(target_os = "macos")]
 static MACOS_SAY_CHILD: Mutex<Option<(u64, Child)>> = Mutex::new(None);
 
-pub fn speak_text_bg(text: String) {
+pub fn speak_text_bg(text: String, lang: String) {
     let gen = TTS_GEN.fetch_add(1, Ordering::Relaxed) + 1;
     std::thread::spawn(move || {
-        if let Err(e) = do_system_tts(&text, gen) {
+        if let Err(e) = do_system_tts(&text, &lang, gen) {
             log::error!("TTS synthesis error: {}", e);
         }
     });
@@ -48,18 +48,40 @@ pub fn stop_audio() {
     stop_macos_say();
 }
 
-fn text_contains_japanese(text: &str) -> bool {
-    text.chars().any(|c| {
-        matches!(c,
-            '\u{3040}'..='\u{309F}' | // Hiragana
-            '\u{30A0}'..='\u{30FF}' | // Katakana
-            '\u{FF66}'..='\u{FF9D}'   // Half-width Katakana
-        )
-    })
+#[cfg(target_os = "macos")]
+fn select_macos_voice(lang: &str) -> Option<&'static str> {
+    match lang {
+        "zh" => Some("Tingting"),
+        "zh-TW" => Some("Meijia"),
+        "en" => Some("Samantha"),
+        "ja" => Some("Kyoko"),
+        "ko" => Some("Yuna"),
+        "es" => Some("Mónica"),
+        "yue" => Some("Sin-ji"),
+        _ => None,
+    }
 }
 
 #[cfg(windows)]
-fn try_set_japanese_voice(synth: &windows::Media::SpeechSynthesis::SpeechSynthesizer) {
+fn windows_language_tag(app_lang: &str) -> &str {
+    match app_lang {
+        "zh" => "zh-CN",
+        "zh-TW" => "zh-TW",
+        "en" => "en-US",
+        "ja" => "ja-JP",
+        "ko" => "ko-KR",
+        "es" => "es-ES",
+        "yue" => "zh-HK",
+        _ => app_lang,
+    }
+}
+
+#[cfg(windows)]
+fn try_set_voice_for_language(
+    synth: &windows::Media::SpeechSynthesis::SpeechSynthesizer,
+    lang: &str,
+) {
+    let target = windows_language_tag(lang).to_lowercase();
     let voices = match windows::Media::SpeechSynthesis::SpeechSynthesizer::AllVoices() {
         Ok(v) => v,
         Err(_) => return,
@@ -73,12 +95,12 @@ fn try_set_japanese_voice(synth: &windows::Media::SpeechSynthesis::SpeechSynthes
             Ok(v) => v,
             Err(_) => continue,
         };
-        let lang = match voice.Language() {
+        let voice_lang = match voice.Language() {
             Ok(l) => l,
             Err(_) => continue,
         };
-        let lang_str = format!("{}", lang).to_lowercase();
-        if lang_str == "ja-jp" || lang_str == "ja" || lang_str.starts_with("ja-") {
+        let voice_lang_str = format!("{}", voice_lang).to_lowercase();
+        if voice_lang_str == target || voice_lang_str.starts_with(&format!("{}-", target.split('-').next().unwrap_or(&target))) {
             let _ = synth.SetVoice(&voice);
             return;
         }
@@ -126,7 +148,7 @@ pub fn native_tts_voice_available(lang: &str) -> bool {
 }
 
 #[cfg(windows)]
-fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
+fn do_system_tts(text: &str, lang: &str, gen: u64) -> Result<(), String> {
     use windows::Media::SpeechSynthesis::SpeechSynthesizer;
     use windows::Storage::Streams::DataReader;
 
@@ -137,9 +159,7 @@ fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
     let synth = SpeechSynthesizer::new()
         .map_err(|e| format!("Failed to create synthesizer: {}", e))?;
 
-    if text_contains_japanese(text) {
-        try_set_japanese_voice(&synth);
-    }
+    try_set_voice_for_language(&synth, lang);
 
     let stream = synth
         .SynthesizeTextToStreamAsync(&windows::core::HSTRING::from(text))
@@ -179,7 +199,7 @@ fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
+fn do_system_tts(text: &str, lang: &str, gen: u64) -> Result<(), String> {
     if TTS_GEN.load(Ordering::Relaxed) != gen {
         return Ok(());
     }
@@ -187,7 +207,11 @@ fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
     let mut child_guard = MACOS_SAY_CHILD.lock().map_err(|e| e.to_string())?;
     stop_macos_say_locked(&mut child_guard);
 
-    let child = Command::new("/usr/bin/say")
+    let mut cmd = Command::new("/usr/bin/say");
+    if let Some(voice) = select_macos_voice(lang) {
+        cmd.arg("-v").arg(voice);
+    }
+    let child = cmd
         .arg("--")
         .arg(text)
         .spawn()
@@ -223,7 +247,7 @@ fn do_system_tts(text: &str, gen: u64) -> Result<(), String> {
 }
 
 #[cfg(not(any(windows, target_os = "macos")))]
-fn do_system_tts(_text: &str, _gen: u64) -> Result<(), String> {
+fn do_system_tts(_text: &str, _lang: &str, _gen: u64) -> Result<(), String> {
     Ok(())
 }
 

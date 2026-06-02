@@ -299,7 +299,7 @@ export default function Settings() {
                   <div className="text-xs text-gray-500 dark:text-gray-400">{systemTtsDetail}</div>
                 </div>
                 <button
-                  onClick={() => speakText(t('tts.test_message')).catch(() => {})}
+                  onClick={() => speakText(t('tts.test_message'), 'en').catch(() => {})}
                   disabled={!systemTtsSupported}
                   className="px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-md text-xs hover:bg-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                 >

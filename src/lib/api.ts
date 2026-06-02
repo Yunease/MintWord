@@ -1,5 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport, Composition, CompositionSummary, CompositionReview } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport, ImportPreview, FieldMappingSelection, Composition, CompositionSummary, CompositionReview } from '../types';
 
 const TAURI_AVAILABLE = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -78,16 +78,24 @@ export async function getStats(): Promise<ReviewStats> {
   return invoke('get_stats');
 }
 
-export async function importDeckFile(deckId: string, filePath: string): Promise<ImportReport> {
-  return invoke('import_csv_file', { deckId, filePath });
+export async function previewImportFile(filePath: string): Promise<ImportPreview> {
+  return invoke('preview_import_file', { filePath });
+}
+
+export async function importDeckFile(
+  deckId: string,
+  filePath: string,
+  fieldMapping?: FieldMappingSelection,
+): Promise<ImportReport> {
+  return invoke('import_csv_file', { deckId, filePath, fieldMapping: fieldMapping ?? null });
 }
 
 export async function bulkAddCards(deckId: string, text: string): Promise<number> {
   return invoke('bulk_add_cards', { deckId, text });
 }
 
-export async function speakText(text: string): Promise<void> {
-  return invoke('speak_text', { text });
+export async function speakText(text: string, lang: string): Promise<void> {
+  return invoke('speak_text', { text, lang });
 }
 
 export async function speakAi(text: string, apiUrl: string, apiKey: string, voice: string, model: string): Promise<void> {
