@@ -62,7 +62,7 @@ export default function Settings() {
       const savedQuizConfig = await loadQuizConfig();
       setQuizConfig(savedQuizConfig);
       const savedLang = await getSetting('lang');
-      if (savedLang === 'en' || savedLang === 'zh' || savedLang === 'zh-TW') {
+      if (savedLang === 'en' || savedLang === 'zh' || savedLang === 'zh-TW' || savedLang === 'ja' || savedLang === 'ko') {
         setLangState(savedLang);
         setLang(savedLang);
       }
@@ -211,6 +211,26 @@ export default function Settings() {
                   }`}
                 >
                   English
+                </button>
+                <button
+                  onClick={() => handleLangChange('ja')}
+                  className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                    lang === 'ja'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  日本語
+                </button>
+                <button
+                  onClick={() => handleLangChange('ko')}
+                  className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                    lang === 'ko'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  한국어
                 </button>
               </div>
             </section>
