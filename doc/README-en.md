@@ -1,5 +1,7 @@
 # MintWord (薄荷词汇)
 
+> [简体中文](../README.md) · [日本語](./README-ja.md) · [한국어](./README-ko.md)
+
 A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **TypeScript**, and **Rust**. Uses the **SM-2 spaced repetition algorithm** to help you memorize words efficiently.
 
 ## Features
@@ -12,7 +14,9 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 - **Study Statistics** — Review history, heatmap activity, and learning progress
 - **Mastered Cards** — Mark cards as mastered to exclude them from reviews
 - **Dictation Mode** — Randomly mix dictation into study sessions — hear the word then type it
+- **AI Quiz Generation** — Automatically generate multiple-choice quizzes from your decks with configurable difficulty, question count, and options
 - **AI Reading Comprehension** — Import articles and generate reading comprehension questions with AI
+- **AI Provider Management** — Add custom AI providers (OpenAI-compatible), configure models and parameters
 - **Library** — Manage learning articles with TXT import or manual paste
 - **Quick Preview** — Quickly review words from the current study session
 - **Notes** — Add personal notes to cards during study
