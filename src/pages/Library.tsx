@@ -165,9 +165,9 @@ export default function Library() {
           <div key={section.type} className="bg-white dark:bg-gray-900 rounded-lg border border-border overflow-hidden">
             <button
               onClick={() => toggleSection(section.type)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <svg
                   className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                   viewBox="0 0 20 20"
@@ -179,12 +179,12 @@ export default function Library() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span className="font-medium text-sm">{t(section.labelKey)}</span>
+                <span className="font-semibold text-base">{t(section.labelKey)}</span>
+              </div>
+              <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {items.length > 0 ? `${items.length}` : ''}
                 </span>
-              </div>
-              <div className="flex items-center gap-2">
                 {isExpanded ? (
                   <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clipRule="evenodd" />
@@ -196,120 +196,125 @@ export default function Library() {
                 )}
               </div>
             </button>
-            {isExpanded && (
-              <div className="border-t border-border">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-border">
-                  <button
-                    onClick={() => {
-                      const mut = section.type === 'article' ? importArticleMut : importCompositionMut;
-                      mut.mutate();
-                    }}
-                    disabled={
-                      section.type === 'article' ? importArticleMut.isPending : importCompositionMut.isPending
-                    }
-                    className="px-3 py-1 bg-primary-light text-primary-dark rounded-md text-xs hover:bg-primary hover:text-white transition-colors disabled:opacity-50"
-                  >
-                    {section.type === 'article' ? t('library.import_txt') : t('composition.import_txt')}
-                  </button>
-                  <button
-                    onClick={() => setPasteState({
-                      type: section.type,
-                      show: true,
-                      title: '',
-                      content: '',
-                    })}
-                    className="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded-md text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {section.type === 'article' ? t('library.paste') : t('composition.paste')}
-                  </button>
-                </div>
-
-                {pasteState.show && pasteState.type === section.type && (
-                  <div className="p-4 border-b border-border space-y-3 bg-white dark:bg-gray-900">
-                    <input
-                      autoFocus
-                      placeholder={section.type === 'article' ? t('library.paste_title') : t('composition.paste_title')}
-                      value={pasteState.title}
-                      onChange={(e) => setPasteState((prev) => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <textarea
-                      placeholder={section.type === 'article' ? t('library.paste_placeholder') : t('composition.paste_placeholder')}
-                      value={pasteState.content}
-                      onChange={(e) => setPasteState((prev) => ({ ...prev, content: e.target.value }))}
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          const mut = section.type === 'article' ? createArticleMut : createCompositionMut;
-                          mut.mutate();
-                        }}
-                        disabled={!pasteState.title.trim() || !pasteState.content.trim() || (section.type === 'article' ? createArticleMut.isPending : createCompositionMut.isPending)}
-                        className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
-                      >
-                        {t('common.save')}
-                      </button>
-                      <button
-                        onClick={closePaste}
-                        className="px-4 py-1.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                    </div>
+            <div
+              className="grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+              style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}
+            >
+              <div className="overflow-hidden">
+                <div className="border-t border-border">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-border">
+                    <button
+                      onClick={() => {
+                        const mut = section.type === 'article' ? importArticleMut : importCompositionMut;
+                        mut.mutate();
+                      }}
+                      disabled={
+                        section.type === 'article' ? importArticleMut.isPending : importCompositionMut.isPending
+                      }
+                      className="px-3 py-1 bg-primary-light text-primary-dark rounded-md text-xs hover:bg-primary hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      {section.type === 'article' ? t('library.import_txt') : t('composition.import_txt')}
+                    </button>
+                    <button
+                      onClick={() => setPasteState({
+                        type: section.type,
+                        show: true,
+                        title: '',
+                        content: '',
+                      })}
+                      className="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded-md text-xs hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      {section.type === 'article' ? t('library.paste') : t('composition.paste')}
+                    </button>
                   </div>
-                )}
 
-                {items.length > 0 ? (
-                  <div className="divide-y divide-border">
-                    {items.map((item) => (
-                      <Link
-                        key={item.id}
-                        to={`${section.linkPrefix}/${item.id}`}
-                        className="flex items-center justify-between p-4 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium text-sm truncate">{item.title}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 space-x-2">
-                            <span>
-                              {item.source === 'txt'
-                                ? (section.type === 'article' ? t('library.source_txt') : t('composition.source_txt'))
-                                : (section.type === 'article' ? t('library.source_paste') : t('composition.source_paste'))}
-                            </span>
-                            <span>·</span>
-                            <span>{new Date(item.created_at).toLocaleDateString()}</span>
-                            {section.getBadge && section.getBadge(item) && (
-                              <>
-                                <span>·</span>
-                                <span className="text-primary-dark">{section.getBadge(item)}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                  {pasteState.show && pasteState.type === section.type && (
+                    <div className="p-4 border-b border-border space-y-3 bg-white dark:bg-gray-900">
+                      <input
+                        autoFocus
+                        placeholder={section.type === 'article' ? t('library.paste_title') : t('composition.paste_title')}
+                        value={pasteState.title}
+                        onChange={(e) => setPasteState((prev) => ({ ...prev, title: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <textarea
+                        placeholder={section.type === 'article' ? t('library.paste_placeholder') : t('composition.paste_placeholder')}
+                        value={pasteState.content}
+                        onChange={(e) => setPasteState((prev) => ({ ...prev, content: e.target.value }))}
+                        rows={8}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
+                      />
+                      <div className="flex gap-2">
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (confirm(section.type === 'article' ? t('library.delete_confirm') : t('composition.delete_confirm'))) {
-                              const mut = section.type === 'article' ? deleteArticleMut : deleteCompositionMut;
-                              mut.mutate(item.id);
-                            }
+                          onClick={() => {
+                            const mut = section.type === 'article' ? createArticleMut : createCompositionMut;
+                            mut.mutate();
                           }}
-                          className="ml-4 px-3 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md text-sm hover:bg-red-200 dark:hover:bg-red-800 transition-colors shrink-0"
+                          disabled={!pasteState.title.trim() || !pasteState.content.trim() || (section.type === 'article' ? createArticleMut.isPending : createCompositionMut.isPending)}
+                          className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover disabled:opacity-50 transition-colors"
                         >
-                          {t('common.delete')}
+                          {t('common.save')}
                         </button>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-400 text-sm">
-                    {t(section.emptyKey)}
-                  </div>
-                )}
+                        <button
+                          onClick={closePaste}
+                          className="px-4 py-1.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {items.length > 0 ? (
+                    <div className="divide-y divide-border">
+                      {items.map((item) => (
+                        <Link
+                          key={item.id}
+                          to={`${section.linkPrefix}/${item.id}`}
+                          className="flex items-center justify-between px-4 py-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-base truncate">{item.title}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-2">
+                              <span>
+                                {item.source === 'txt'
+                                  ? (section.type === 'article' ? t('library.source_txt') : t('composition.source_txt'))
+                                  : (section.type === 'article' ? t('library.source_paste') : t('composition.source_paste'))}
+                              </span>
+                              <span>·</span>
+                              <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                              {section.getBadge && section.getBadge(item) && (
+                                <>
+                                  <span>·</span>
+                                  <span className="text-primary-dark">{section.getBadge(item)}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (confirm(section.type === 'article' ? t('library.delete_confirm') : t('composition.delete_confirm'))) {
+                                const mut = section.type === 'article' ? deleteArticleMut : deleteCompositionMut;
+                                mut.mutate(item.id);
+                              }
+                            }}
+                            className="ml-4 px-3 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-md text-sm hover:bg-red-200 dark:hover:bg-red-800 transition-colors shrink-0"
+                          >
+                            {t('common.delete')}
+                          </button>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-400 text-sm">
+                      {t(section.emptyKey)}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         );
       })}
