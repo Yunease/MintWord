@@ -125,6 +125,7 @@ src-tauri/              Rust 后端
 | `Layout` | `components/Layout.tsx` | 应用外壳：顶栏导航 + 内容区，启动时加载主题和语言设置 |
 | `PreviewGrid` | `components/PreviewGrid.tsx` | 学习卡片快速预览网格，支持 Ctrl+方向键导航 |
 | `Select` | `components/Select.tsx` | 自定义下拉选择器，支持键盘导航（↑↓/Enter/Escape/Home/End）、无障碍 ARIA、暗色模式。用法：`<Select options={[{value, label}]} value={v} onChange={fn} label="..." />` |
+| `TagInput` | `components/TagInput.tsx` | Tag 输入组件，支持 Enter/逗号/粘贴添加、点击 × 删除、Backspace 退格删除、最多标签数限制。用法：`<TagInput value={tags} onChange={fn} max={10} label="..." hint="..." />` |
 
 **规则：实现新的可复用组件后，必须写入此表。**
 

@@ -4,7 +4,6 @@ export interface QuizConfig {
   difficulty: string;
   questionCount: number;
   optionCount: number;
-  customPrompt: string;
 }
 
 export const DIFFICULTY_LEVELS = [
@@ -67,7 +66,6 @@ export const DEFAULT_QUIZ_CONFIG: QuizConfig = {
   difficulty: 'gaokao',
   questionCount: 4,
   optionCount: 4,
-  customPrompt: '',
 };
 
 export function getDefaultTemplate(): string {
@@ -80,8 +78,8 @@ function optionLetters(count: number): string {
   ).join('/');
 }
 
-export function buildPrompt(config: QuizConfig): string {
-  const template = config.customPrompt || DEFAULT_TEMPLATE;
+export function buildPrompt(config: QuizConfig, customTemplate?: string): string {
+  const template = customTemplate || DEFAULT_TEMPLATE;
   const difficultyLabel = getDifficultyLabel(config.difficulty);
 
   return template
@@ -91,8 +89,8 @@ export function buildPrompt(config: QuizConfig): string {
     .replace(/\{optionLetters\}/g, optionLetters(config.optionCount));
 }
 
-export function buildPromptPreview(config: QuizConfig): string {
-  return buildPrompt(config);
+export function buildPromptPreview(config: QuizConfig, customTemplate?: string): string {
+  return buildPrompt(config, customTemplate);
 }
 
 const STORAGE_KEY = 'quiz_config';
@@ -102,7 +100,12 @@ export async function loadQuizConfig(): Promise<QuizConfig> {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      return { ...DEFAULT_QUIZ_CONFIG, ...parsed };
+      return {
+        ...DEFAULT_QUIZ_CONFIG,
+        difficulty: parsed.difficulty ?? DEFAULT_QUIZ_CONFIG.difficulty,
+        questionCount: parsed.questionCount ?? DEFAULT_QUIZ_CONFIG.questionCount,
+        optionCount: parsed.optionCount ?? DEFAULT_QUIZ_CONFIG.optionCount,
+      };
     }
   } catch {
     /* ignore */

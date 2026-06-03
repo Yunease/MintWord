@@ -251,6 +251,16 @@ export async function getChatgptLoginUrl(): Promise<string> {
   return invoke('get_chatgpt_login_url');
 }
 
+// === User / Avatar ===
+
+export async function saveAvatarFile(sourcePath: string): Promise<string> {
+  return invoke('save_avatar_file', { sourcePath });
+}
+
+export async function getAvatarBase64(filename: string): Promise<string> {
+  return invoke('get_avatar_base64', { filename });
+}
+
 // === Cache Management ===
 
 export async function clearLearningProgress(): Promise<void> {

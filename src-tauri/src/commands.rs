@@ -787,6 +787,40 @@ pub fn set_setting(db: State<Database>, key: String, value: String) -> Result<()
     Ok(())
 }
 
+#[tauri::command]
+pub fn save_avatar_file(db: State<Database>, source_path: String) -> Result<String, String> {
+    let avatar_dir = db.app_dir.join("avatars");
+    std::fs::create_dir_all(&avatar_dir).map_err(|e| e.to_string())?;
+
+    let source = std::path::Path::new(&source_path);
+    let ext = source.extension().and_then(|e| e.to_str()).unwrap_or("png");
+    let filename = format!("{}.{}", uuid::Uuid::new_v4(), ext);
+    let dest = avatar_dir.join(&filename);
+
+    std::fs::copy(source, &dest).map_err(|e| e.to_string())?;
+
+    Ok(filename)
+}
+
+#[tauri::command]
+pub fn get_avatar_base64(db: State<Database>, filename: String) -> Result<String, String> {
+    let path = db.app_dir.join("avatars").join(&filename);
+    let data = std::fs::read(&path).map_err(|e| e.to_string())?;
+
+    let ext = std::path::Path::new(&filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("png");
+    let mime = match ext {
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        _ => "image/png",
+    };
+
+    Ok(format!("data:{};base64,{}", mime, base64::engine::general_purpose::STANDARD.encode(&data)))
+}
+
 // === Article Library Commands ===
 
 #[tauri::command]

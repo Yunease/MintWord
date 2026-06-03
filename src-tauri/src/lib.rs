@@ -140,6 +140,8 @@ pub fn run() {
             commands::clear_review_logs,
             commands::clear_settings,
             commands::clear_all_cache,
+            commands::save_avatar_file,
+            commands::get_avatar_base64,
 
         ])
         .run(tauri::generate_context!())

@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { speakText, speakAi, getPlatform, getSetting, setSetting, setAiPrompt, setCompositionReviewPrompt, clearLearningProgress, clearReviewLogs, clearSettings, clearAllCache, checkNativeTtsVoice } from '../lib/api';
 import { t, setLang, getLang, type Lang } from '../lib/i18n';
 import Select from '../components/Select';
+import TooltipIcon from '../components/TooltipIcon';
 import ConfirmModal from '../components/ConfirmModal';
 import AiModelList from '../components/ai/AiModelList';
 import AiAddModel from '../components/ai/AiAddModel';
 import AiModelDetail from '../components/ai/AiModelDetail';
-import QuizConfigPanel from '../components/QuizConfig';
 import CompositionReviewConfig from '../components/CompositionReviewConfig';
-import { buildPrompt, DEFAULT_QUIZ_CONFIG, loadQuizConfig, saveQuizConfig } from '../lib/quizPrompt';
-import type { QuizConfig } from '../lib/quizPrompt';
+import { getDefaultTemplate } from '../lib/quizPrompt';
 import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, saveCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
 import type { CompositionConfig } from '../lib/compositionPrompt';
 
@@ -44,7 +43,8 @@ export default function Settings() {
 
   const [aiView, setAiView] = useState<'list' | 'add' | 'detail'>('list');
   const [aiEditIndex, setAiEditIndex] = useState<number>(-1);
-  const [quizConfig, setQuizConfig] = useState<QuizConfig>(DEFAULT_QUIZ_CONFIG);
+  const [promptTemplate, setPromptTemplate] = useState('');
+  const [promptEditorExpanded, setPromptEditorExpanded] = useState(false);
   const [compositionConfig, setCompositionConfig] = useState<CompositionConfig>(DEFAULT_COMPOSITION_CONFIG);
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -71,8 +71,8 @@ export default function Settings() {
       if (voice) setTtsVoice(voice);
       const model = await getSetting('tts_ai_model');
       if (model) setTtsModel(model);
-      const savedQuizConfig = await loadQuizConfig();
-      setQuizConfig(savedQuizConfig);
+      const savedPrompt = await getSetting('ai_quiz_prompt');
+      if (savedPrompt) setPromptTemplate(savedPrompt);
       const savedCompositionConfig = await loadCompositionConfig();
       setCompositionConfig(savedCompositionConfig);
       const savedLang = await getSetting('lang');
@@ -421,17 +421,62 @@ export default function Settings() {
 
                 <section className="space-y-4">
                   <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {t('ai.quiz_settings')}
+                    {t('ai.prompt')}
                   </h2>
-                  <QuizConfigPanel
-                    config={quizConfig}
-                    onChange={(newConfig) => {
-                      setQuizConfig(newConfig);
-                      saveQuizConfig(newConfig);
-                      const prompt = buildPrompt(newConfig);
-                      setAiPrompt(prompt);
-                    }}
-                  />
+                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4">
+                    <button
+                      type="button"
+                      onClick={() => setPromptEditorExpanded(!promptEditorExpanded)}
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      {promptEditorExpanded ? t('ai.quiz_collapse_prompt') : t('ai.quiz_expand_prompt')}
+                      <span className="text-[10px]">{promptEditorExpanded ? '▲' : '▼'}</span>
+                    </button>
+
+                    {promptEditorExpanded && (
+                      <div className="mt-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-400 flex items-center gap-2">
+                            <span>{'{difficulty}'} <TooltipIcon text={t('ai.quiz_variable_difficulty')} /></span>
+                            <span>{'{questionCount}'} <TooltipIcon text={t('ai.quiz_variable_question_count')} /></span>
+                            <span>{'{optionCount}'} <TooltipIcon text={t('ai.quiz_variable_option_count')} /></span>
+                            <span>{'{optionLetters}'} <TooltipIcon text={t('ai.quiz_variable_option_letters')} /></span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPromptTemplate('');
+                              setAiPrompt('');
+                            }}
+                            className="text-xs text-primary hover:underline shrink-0"
+                          >
+                            {t('ai.prompt_reset')}
+                          </button>
+                        </div>
+                        <textarea
+                          value={promptTemplate || getDefaultTemplate()}
+                          onChange={(e) => {
+                            setPromptTemplate(e.target.value);
+                            setAiPrompt(e.target.value);
+                          }}
+                          rows={12}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
+                        />
+                        <p className="text-xs text-gray-400">
+                          {t('ai.prompt_desc')}
+                        </p>
+                        {promptTemplate ? (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            {t('ai.prompt_security_hint')}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400">
+                            {t('ai.prompt_edit_hint')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </section>
 
                 <section className="space-y-4">

@@ -11,6 +11,7 @@ import ImportPage from './pages/Import';
 import Library from './pages/Library';
 import ArticleView from './pages/ArticleView';
 import CompositionView from './pages/CompositionView';
+import UserInfo from './pages/UserInfo';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/library" element={<Library />} />
             <Route path="/library/:id" element={<ArticleView />} />
             <Route path="/composition/:id" element={<CompositionView />} />
+            <Route path="/user" element={<UserInfo />} />
           </Routes>
         </Layout>
       </BrowserRouter>

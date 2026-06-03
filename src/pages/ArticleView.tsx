@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { getArticle, generateQuestions, generateQuestionsWithConfig, saveQuestions, getArticleQuestions, getSetting } from '../lib/api';
+import { getArticle, generateQuestions, generateQuestionsWithConfig, saveQuestions, getArticleQuestions, getSetting, getAiPrompt } from '../lib/api';
 import { t } from '../lib/i18n';
 import QuizConfigPanel from '../components/QuizConfig';
 import { buildPrompt, DEFAULT_QUIZ_CONFIG, loadQuizConfig, saveQuizConfig } from '../lib/quizPrompt';
@@ -63,7 +63,8 @@ export default function ArticleView() {
       setGenerating(true);
       setError('');
       saveQuizConfig(quizConfig);
-      const prompt = buildPrompt(quizConfig);
+      const customTemplate = await getAiPrompt().catch(() => '');
+      const prompt = buildPrompt(quizConfig, customTemplate);
       const configListStr = await getSetting('ai_provider_config_list');
       if (configListStr) {
         try {
