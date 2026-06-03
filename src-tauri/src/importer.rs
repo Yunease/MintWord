@@ -132,13 +132,23 @@ fn selection_to_indices(columns: &[String], selection: &FieldMappingSelection) -
         name.as_ref()
             .and_then(|n| columns.iter().position(|c| c == n))
     }
-    ResolvedFieldMapping {
+    let mut mapping = ResolvedFieldMapping {
         front_idx: col_index(columns, &selection.front),
         back_idx: col_index(columns, &selection.back),
         phonetic_idx: col_index(columns, &selection.phonetic),
         example_idx: col_index(columns, &selection.example_sentence),
         used_fallback_mapping: false,
+    };
+    if mapping.phonetic_idx == mapping.front_idx || mapping.phonetic_idx == mapping.back_idx {
+        mapping.phonetic_idx = None;
     }
+    if mapping.example_idx == mapping.front_idx || mapping.example_idx == mapping.back_idx {
+        mapping.example_idx = None;
+    }
+    if mapping.example_idx == mapping.phonetic_idx {
+        mapping.example_idx = None;
+    }
+    mapping
 }
 
 pub fn import_csv(
@@ -392,14 +402,15 @@ fn preview_csv(file_path: &str) -> Result<ImportPreview, String> {
 
     let mapping = resolve_field_mapping(&columns)?;
 
-    let all_records: Vec<Vec<String>> = reader
-        .records()
-        .filter_map(|r| r.ok())
-        .map(|r| r.iter().map(|v| v.to_string()).collect())
-        .collect();
-
-    let total_rows = all_records.len() as i32;
-    let sample_rows = all_records.into_iter().take(5).collect();
+    let mut total_rows = 0;
+    let mut sample_rows = Vec::new();
+    for record in reader.records() {
+        let Ok(r) = record else { continue };
+        if sample_rows.len() < 5 {
+            sample_rows.push(r.iter().map(|v| v.to_string()).collect());
+        }
+        total_rows += 1;
+    }
 
     Ok(ImportPreview {
         source_format: "csv".to_string(),
