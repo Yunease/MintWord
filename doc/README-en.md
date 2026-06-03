@@ -7,10 +7,10 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 ## Features
 
 - **Spaced Repetition** — SM-2 algorithm for optimal review scheduling
-- **Built-in Decks** — 8 Chinese exam vocabulary decks (CET-4, CET-6, TOEFL, IELTS, GRE, 考研, 高考, 中考)
+- **Built-in Decks** — ECDICT English vocabulary (CET-4, CET-6, 考研, GRE, TOEFL, IELTS, 高考, 中考) + JLPT N5–N1 Japanese vocabulary
 - **Custom Decks** — Create your own decks and add words manually or in bulk
-- **CSV Import** — Import vocabulary from CSV files
-- **Text-to-Speech** — Windows / macOS system TTS + configurable AI TTS (OpenAI-compatible API)
+- **Import** — CSV and Anki APKG format with preview modal for field mapping confirmation; preserves Anki study progress
+- **Text-to-Speech** — Windows / macOS system TTS with per-language voice selection + configurable AI TTS (OpenAI-compatible API)
 - **Study Statistics** — Review history, heatmap activity, and learning progress
 - **Mastered Cards** — Mark cards as mastered to exclude them from reviews
 - **Dictation Mode** — Randomly mix dictation into study sessions — hear the word then type it
@@ -26,6 +26,8 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 
 ## Built-in Decks
 
+English decks are based on [ECDICT](https://github.com/skywind3000/ECDICT) (MIT license). Japanese decks are compiled from JLPT graded vocabulary.
+
 | Deck   | Description         |
 | ------ | ------------------- |
 | CET-4  | College English Band 4 |
@@ -36,6 +38,11 @@ A cross-platform vocabulary learning app built with **Tauri v2**, **React**, **T
 | IELTS  | International English Language Testing System |
 | 高考   | College Entrance Exam |
 | 中考   | High School Entrance Exam |
+| JLPT-N5 | Japanese-Language Proficiency Test N5 |
+| JLPT-N4 | Japanese-Language Proficiency Test N4 |
+| JLPT-N3 | Japanese-Language Proficiency Test N3 |
+| JLPT-N2 | Japanese-Language Proficiency Test N2 |
+| JLPT-N1 | Japanese-Language Proficiency Test N1 |
 
 ## Tech Stack
 
