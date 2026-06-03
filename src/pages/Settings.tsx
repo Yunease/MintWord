@@ -12,14 +12,15 @@ import { getDefaultTemplate } from '../lib/quizPrompt';
 import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, saveCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
 import type { CompositionConfig } from '../lib/compositionPrompt';
 
-type Theme = 'mint' | 'ocean' | 'warm' | 'lavender' | 'sakura';
+type Theme = 'mint' | 'ocean' | 'warm' | 'lavender' | 'sakura' | 'mono';
 
 const THEMES: { id: Theme; labelKey: string; color: string }[] = [
   { id: 'mint', labelKey: 'settings.theme_mint', color: '#10b981' },
   { id: 'ocean', labelKey: 'settings.theme_ocean', color: '#3b82f6' },
   { id: 'warm', labelKey: 'settings.theme_warm', color: '#f59e0b' },
-  { id: 'lavender', labelKey: 'settings.theme_lavender', color: '#8b5cf6' },
-  { id: 'sakura', labelKey: 'settings.theme_sakura', color: '#f472b6' },
+  { id: 'lavender', labelKey: 'settings.theme_lavender', color: '#8968CD' },
+  { id: 'sakura', labelKey: 'settings.theme_sakura', color: '#EE949C' },
+  { id: 'mono', labelKey: 'settings.theme_mono', color: '' },
 ];
 
 export default function Settings() {
@@ -81,7 +82,7 @@ export default function Settings() {
         setLang(savedLang);
       }
       const savedTheme = await getSetting('theme');
-      if (savedTheme === 'ocean' || savedTheme === 'warm' || savedTheme === 'lavender' || savedTheme === 'sakura') {
+      if (savedTheme === 'ocean' || savedTheme === 'warm' || savedTheme === 'lavender' || savedTheme === 'sakura' || savedTheme === 'mono') {
         setTheme(savedTheme);
       }
       const savedDark = await getSetting('dark_mode');
@@ -258,12 +259,20 @@ export default function Settings() {
                   <button
                     key={id}
                     onClick={() => handleThemeChange(id)}
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
+                    className={`w-10 h-10 rounded-full border-2 transition-all relative overflow-hidden ${
                       theme === id ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent'
                     }`}
-                    style={{ backgroundColor: color }}
                     title={t(labelKey)}
-                  />
+                  >
+                    {id === 'mono' ? (
+                      <div className="absolute inset-0 flex">
+                        <div className="w-1/2 h-full border-r-2 border-white" style={{ background: '#000' }} />
+                        <div className="w-1/2 h-full border-l-2 border-black" style={{ background: '#fff' }} />
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 rounded-full" style={{ backgroundColor: color }} />
+                    )}
+                  </button>
                 ))}
               </div>
               <label className="flex items-center gap-3 cursor-pointer">

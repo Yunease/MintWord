@@ -25,17 +25,24 @@
 }
 
 .theme-lavender {
-  --color-primary: #8b5cf6;
-  --color-primary-hover: #7c3aed;
+  --color-primary: #8968CD;
+  --color-primary-hover: #7355B5;
   --color-primary-light: #ddd6fe;
   --color-primary-dark: #5b21b6;
 }
 
 .theme-sakura {
-  --color-primary: #f472b6;
-  --color-primary-hover: #ec4899;
+  --color-primary: #EE949C;
+  --color-primary-hover: #D47A82;
   --color-primary-light: #fce7f3;
   --color-primary-dark: #db2777;
+}
+
+.theme-mono {
+  --color-primary: #4a4a4a;
+  --color-primary-hover: #2a2a2a;
+  --color-primary-light: #d4d4d4;
+  --color-primary-dark: #1a1a1a;
 }
 
 .dark {
