@@ -1,6 +1,7 @@
 import Select from './Select';
 import TooltipIcon from './TooltipIcon';
 import { t } from '../lib/i18n';
+import { MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import {
   type QuizConfig,
   getDifficultyOptions,
@@ -39,7 +40,7 @@ function NumberStepper({
           disabled={value <= min}
           className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors text-sm"
         >
-          −
+          <MinusIcon className="w-4 h-4" />
         </button>
         <span className="w-8 text-center text-sm font-medium tabular-nums">
           {value}
@@ -50,7 +51,7 @@ function NumberStepper({
           disabled={value >= max}
           className="w-8 h-8 flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors text-sm"
         >
-          +
+          <PlusIcon className="w-4 h-4" />
         </button>
       </div>
     </div>

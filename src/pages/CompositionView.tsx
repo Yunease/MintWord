@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getComposition, reviewCompositionWithConfig, saveCompositionReview, getSetting } from '../lib/api';
 import { t } from '../lib/i18n';
 import { useStudyTimer } from '../hooks/useStudyTimer';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CompositionReviewConfig from '../components/CompositionReviewConfig';
 import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
 import type { CompositionConfig } from '../lib/compositionPrompt';
@@ -98,7 +99,7 @@ export default function CompositionView() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <Link to="/library" className="text-sm text-primary hover:underline inline-block">
-          &larr; {t('composition.back')}
+          <ArrowLeftIcon className="w-4 h-4 inline" /> {t('composition.back')}
         </Link>
         <button
           onClick={() => setReadingMode(true)}

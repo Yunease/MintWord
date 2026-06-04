@@ -6,6 +6,7 @@ import TooltipIcon from '../components/TooltipIcon';
 import ConfirmModal from '../components/ConfirmModal';
 import AiModelList from '../components/ai/AiModelList';
 import AiAddModel from '../components/ai/AiAddModel';
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import AiModelDetail from '../components/ai/AiModelDetail';
 import CompositionReviewConfig from '../components/CompositionReviewConfig';
 import { getDefaultTemplate, getDefaultAiExamplePrompt } from '../lib/quizPrompt';
@@ -446,7 +447,7 @@ export default function Settings() {
                       className="text-xs text-primary hover:underline flex items-center gap-1"
                     >
                       {promptEditorExpanded ? t('ai.quiz_collapse_prompt') : t('ai.quiz_expand_prompt')}
-                      <span className="text-[10px]">{promptEditorExpanded ? '▲' : '▼'}</span>
+                      {promptEditorExpanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
                     </button>
 
                     {promptEditorExpanded && (
@@ -545,7 +546,7 @@ export default function Settings() {
                         className="text-xs text-primary hover:underline flex items-center gap-1"
                       >
                         {aiExamplePromptExpanded ? t('settings.ai_example_collapse') : t('settings.ai_example_expand')}
-                        <span className="text-[10px]">{aiExamplePromptExpanded ? '▲' : '▼'}</span>
+                        {aiExamplePromptExpanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
                       </button>
 
                       {aiExamplePromptExpanded && (
@@ -653,7 +654,7 @@ export default function Settings() {
                     className="text-xs text-primary hover:underline flex items-center gap-1"
                   >
                     {t('settings.fsrs_advanced')}
-                    <span className="text-[10px]">{showFsrsAdvanced ? '▲' : '▼'}</span>
+                    {showFsrsAdvanced ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
                   </button>
 
                   {showFsrsAdvanced && (

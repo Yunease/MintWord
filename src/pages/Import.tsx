@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { getDecks, previewImportFile, importDeckFile, bulkAddCards } from '../lib/api';
 import { t } from '../lib/i18n';
 import Select from '../components/Select';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import type { ImportReport, ImportPreview, FieldMappingSelection } from '../types';
 
 type ImportPhase =
@@ -80,7 +81,7 @@ export default function ImportPage() {
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <Link to="/decks" className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-          &larr; {t('common.back')}
+          <ArrowLeftIcon className="w-4 h-4 inline" /> {t('common.back')}
         </Link>
         <h1 className="text-xl font-bold">{t('nav.import')}</h1>
       </div>

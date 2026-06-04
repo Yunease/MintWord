@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getArticle, generateQuestions, generateQuestionsWithConfig, saveQuestions, getArticleQuestions, getSetting, getAiPrompt } from '../lib/api';
 import { t } from '../lib/i18n';
 import { useStudyTimer } from '../hooks/useStudyTimer';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import QuizConfigPanel from '../components/QuizConfig';
 import { buildPrompt, DEFAULT_QUIZ_CONFIG, loadQuizConfig, saveQuizConfig } from '../lib/quizPrompt';
 import type { Question, ProviderConfig } from '../types';
@@ -267,7 +268,7 @@ export default function ArticleView() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <Link to="/library" className="text-sm text-primary hover:underline inline-block">
-          &larr; {t('library.back')}
+          <ArrowLeftIcon className="w-4 h-4 inline" /> {t('library.back')}
         </Link>
         <button
           onClick={() => setReadingMode(true)}

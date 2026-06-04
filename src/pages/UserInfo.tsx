@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-dialog';
 import { t } from '../lib/i18n';
 import { setAvatarUrl } from '../lib/avatarStore';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { getSetting, setSetting, saveAvatarFile, getAvatarBase64 } from '../lib/api';
 import TagInput from '../components/TagInput';
 
@@ -94,7 +95,7 @@ export default function UserInfo() {
           onClick={() => navigate(-1)}
           className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         >
-          &larr; {t('common.back')}
+          <ArrowLeftIcon className="w-4 h-4 inline" /> {t('common.back')}
         </button>
         <h1 className="text-xl font-bold">{t('user.title')}</h1>
       </div>

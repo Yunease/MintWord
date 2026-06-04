@@ -6,6 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import type { StudyTimeEntry } from '../types';
+import { FireIcon } from '@heroicons/react/24/outline';
 
 function toLocalDate(d: Date): string {
   const y = d.getFullYear();
@@ -104,7 +105,7 @@ export default function Stats() {
       {/* Streak card */}
       <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-5">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🔥</span>
+          <FireIcon className="w-7 h-7 text-primary" />
           <div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {t('stats.streak', { days: streak ?? 0 })}

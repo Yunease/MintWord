@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getCards, addCard, deleteCard } from '../lib/api';
 import { t } from '../lib/i18n';
+import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 
 export default function DeckDetail() {
@@ -43,7 +44,7 @@ export default function DeckDetail() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Link to="/decks" className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-          &larr; {t('common.back')}
+          <ArrowLeftIcon className="w-4 h-4 inline" /> {t('common.back')}
         </Link>
         <h1 className="text-xl font-bold flex-1">词库详情</h1>
         <Link
@@ -62,7 +63,7 @@ export default function DeckDetail() {
           onClick={() => setShowAdd(!showAdd)}
           className="px-4 py-1.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
         >
-          + {t('deck.add_card')}
+          <PlusIcon className="w-4 h-4 inline" /> {t('deck.add_card')}
         </button>
       </div>
 

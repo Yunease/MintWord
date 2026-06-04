@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { ProviderAvatar } from '../ProviderAvatar';
 import TooltipIcon from '../TooltipIcon';
 import { t } from '../../lib/i18n';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { getSetting, setSetting, testAiConfig } from '../../lib/api';
 import { getProviderById, getEffectiveUrl, getFilteredModels } from '../../lib/aiProviders';
 import type { ProviderConfig } from '../../types';
@@ -210,7 +211,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
             onClick={onBack}
             className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
           >
-            &larr; {t('common.back')}
+            <ArrowLeftIcon className="w-4 h-4 inline" /> {t('common.back')}
           </button>
           <h2 className="text-base font-medium">{t('ai.model_detail')}</h2>
         </div>
@@ -227,7 +228,7 @@ export default function AiModelDetail({ modelIndex, onBack, onSaved, onDeleted }
             onClick={onBack}
             className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
           >
-            &larr; {t('common.back')}
+            <ArrowLeftIcon className="w-4 h-4 inline" /> {t('common.back')}
           </button>
           <h2 className="text-base font-medium">{t('ai.model_detail')}</h2>
         </div>

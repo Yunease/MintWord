@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi, stopTts, exportSessionCsv, getSetting, generateAiExample } from '../lib/api';
 import { t } from '../lib/i18n';
 import { useStudyTimer } from '../hooks/useStudyTimer';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 import type { StudyCard, SessionResult, AiExample } from '../types';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -339,7 +340,7 @@ export default function Study() {
     <div className="max-w-lg mx-auto space-y-4">
       <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <Link to="/" className="hover:text-gray-700 dark:hover:text-gray-300">
-          &larr; {t('common.back')}
+          <ArrowLeftIcon className="w-4 h-4 inline" /> {t('common.back')}
         </Link>
         <span className="text-xs text-primary font-medium">
           {current && cardModes[current.id] === 'dictation' ? t('study.dictation') : t('study.mode_recall')}

@@ -1,6 +1,6 @@
 [package]
 name = "mintword"
-version = "1.5.5"
+version = "1.5.6"
 description = "MintWord - A vocabulary learning app"
 authors = ["you"]
 license = "AGPL-3.0"

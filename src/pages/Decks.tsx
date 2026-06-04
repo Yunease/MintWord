@@ -5,6 +5,7 @@ import { getDecks, createDeck, deleteDeck, getDeckProgress, getSetting, setSetti
 import { t, LANGUAGES, langLabel } from '../lib/i18n';
 import Select from '../components/Select';
 import type { Deck, DeckProgress } from '../types';
+import { PlusIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 export default function Decks() {
   const queryClient = useQueryClient();
@@ -109,7 +110,7 @@ export default function Decks() {
             onClick={() => setShowCreate(!showCreate)}
             className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
           >
-            + {t('deck.create')}
+            <PlusIcon className="w-4 h-4 inline" /> {t('deck.create')}
           </button>
         </div>
       </div>
@@ -193,7 +194,7 @@ export default function Decks() {
                   <div>
                     <div className="font-semibold text-base">
                       {langLabel(groupDecks[0].language_from)}
-                      {' → '}
+                      <ArrowRightIcon className="w-4 h-4 inline mx-1" />
                       {langLabel(groupDecks[0].language_to)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">

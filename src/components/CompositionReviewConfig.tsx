@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Select from './Select';
 import TooltipIcon from './TooltipIcon';
 import { t } from '../lib/i18n';
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import {
   type CompositionConfig,
   getCompositionDefaultTemplate,
@@ -58,7 +59,7 @@ export default function CompositionReviewConfig({
             className="text-xs text-primary hover:underline flex items-center gap-1 pt-2"
           >
             {expanded ? t('composition.collapse_prompt') : t('composition.expand_prompt')}
-            <span className="text-[10px]">{expanded ? '▲' : '▼'}</span>
+            {expanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
           </button>
 
           {expanded && (

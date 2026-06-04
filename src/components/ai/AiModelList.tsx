@@ -5,6 +5,7 @@ import { getSetting, setSetting } from '../../lib/api';
 import { getProviderById } from '../../lib/aiProviders';
 import type { ProviderCategory } from '../../lib/aiProviders';
 import type { ProviderConfig } from '../../types';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 type FilterTab = 'all' | ProviderCategory;
 
@@ -82,7 +83,7 @@ export default function AiModelList({ onAddModel, onEditModel }: AiModelListProp
           onClick={onAddModel}
           className="px-4 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-hover transition-colors"
         >
-          + {t('ai.add_model')}
+          <PlusIcon className="w-4 h-4 inline" /> {t('ai.add_model')}
         </button>
       </div>
 
