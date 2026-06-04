@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "mintword"
-version = "1.5.4"
+version = "1.5.7"
 dependencies = [
  "base64 0.22.1",
  "chrono",
