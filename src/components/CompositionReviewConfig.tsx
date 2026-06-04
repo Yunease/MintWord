@@ -62,8 +62,12 @@ export default function CompositionReviewConfig({
             {expanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
           </button>
 
-          {expanded && (
-            <div className="mt-3 space-y-3">
+          <div
+            className="grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+            style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+          >
+            <div className="overflow-hidden">
+              <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400 flex items-center gap-2">
                   <span>
@@ -98,7 +102,8 @@ export default function CompositionReviewConfig({
                 </p>
               )}
             </div>
-          )}
+            </div>
+          </div>
         </div>
       )}
 

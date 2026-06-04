@@ -8,6 +8,7 @@ import AiModelList from '../components/ai/AiModelList';
 import AiAddModel from '../components/ai/AiAddModel';
 import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import AiModelDetail from '../components/ai/AiModelDetail';
+
 import CompositionReviewConfig from '../components/CompositionReviewConfig';
 import { getDefaultTemplate, getDefaultAiExamplePrompt } from '../lib/quizPrompt';
 import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, saveCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
@@ -30,6 +31,7 @@ export default function Settings() {
   const [ttsKey, setTtsKey] = useState('');
   const [ttsVoice, setTtsVoice] = useState('alloy');
   const [ttsModel, setTtsModel] = useState('tts-1');
+  const [ttsAdvancedExpanded, setTtsAdvancedExpanded] = useState(false);
   const [lang, setLangState] = useState<Lang>(getLang());
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
   const [theme, setTheme] = useState<Theme>('mint');
@@ -347,6 +349,23 @@ export default function Settings() {
                 />
               </div>
 
+              <div className="border-t border-gray-100 dark:border-gray-800 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setTtsAdvancedExpanded(!ttsAdvancedExpanded)}
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  {ttsAdvancedExpanded ? t('settings.tts_collapse_advanced') : t('settings.tts_expand_advanced')}
+                  {ttsAdvancedExpanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
+                </button>
+
+              <div
+                className="grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+                style={{ gridTemplateRows: ttsAdvancedExpanded ? '1fr' : '0fr' }}
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-3 mt-3">
+
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('settings.tts_api_url')}</label>
                 <input
@@ -416,13 +435,17 @@ export default function Settings() {
                   {t('settings.tts_test')}
                 </button>
               </div>
+                </div>
+              </div>
+            </div>
+            </div>
             </div>
           </section>
         )}
 
-        {activeSection === 'ai' && (
-          <section className="space-y-4">
-            {aiView === 'list' && (
+         {activeSection === 'ai' && (
+           <section className="space-y-4">
+             {aiView === 'list' && (
               <>
                 <section className="space-y-4">
                   <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -450,7 +473,11 @@ export default function Settings() {
                       {promptEditorExpanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
                     </button>
 
-                    {promptEditorExpanded && (
+                    <div
+                      className="grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+                      style={{ gridTemplateRows: promptEditorExpanded ? '1fr' : '0fr' }}
+                    >
+                      <div className="overflow-hidden">
                       <div className="mt-3 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-400 flex items-center gap-2">
@@ -492,7 +519,8 @@ export default function Settings() {
                           </p>
                         )}
                       </div>
-                    )}
+                      </div>
+                    </div>
                   </div>
                 </section>
 
@@ -549,7 +577,11 @@ export default function Settings() {
                         {aiExamplePromptExpanded ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
                       </button>
 
-                      {aiExamplePromptExpanded && (
+                      <div
+                        className="grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+                        style={{ gridTemplateRows: aiExamplePromptExpanded ? '1fr' : '0fr' }}
+                      >
+                        <div className="overflow-hidden">
                         <div className="mt-3 space-y-3">
                           <div className="flex justify-end">
                             <button
@@ -574,7 +606,8 @@ export default function Settings() {
                           />
                           <p className="text-xs text-gray-400">{t('settings.ai_example_prompt_hint')}</p>
                         </div>
-                      )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -647,7 +680,11 @@ export default function Settings() {
               </div>
               <p className="text-xs text-amber-600 dark:text-amber-400">{t('settings.algorithm_hint')}</p>
 
-              {algorithm === 'fsrs' && (
+              <div
+                className="grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+                style={{ gridTemplateRows: algorithm === 'fsrs' ? '1fr' : '0fr' }}
+              >
+                <div className="overflow-hidden">
                 <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
                   <button
                     onClick={() => setShowFsrsAdvanced(!showFsrsAdvanced)}
@@ -657,7 +694,11 @@ export default function Settings() {
                     {showFsrsAdvanced ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
                   </button>
 
-                  {showFsrsAdvanced && (
+                  <div
+                    className="grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+                    style={{ gridTemplateRows: showFsrsAdvanced ? '1fr' : '0fr' }}
+                  >
+                    <div className="overflow-hidden">
                     <div className="space-y-3 mt-3">
                       <div>
                         <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -722,9 +763,11 @@ export default function Settings() {
                         </button>
                       </div>
                     </div>
-                  )}
+                    </div>
+                  </div>
                 </div>
-              )}
+                </div>
+              </div>
             </div>
           </section>
         )}

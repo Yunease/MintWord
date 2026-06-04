@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { open } from '@tauri-apps/plugin-dialog';
 import { t } from '../lib/i18n';
 import { setAvatarUrl } from '../lib/avatarStore';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { getSetting, setSetting, saveAvatarFile, getAvatarBase64 } from '../lib/api';
 import TagInput from '../components/TagInput';
 
@@ -107,9 +107,7 @@ export default function UserInfo() {
               <img src={avatarBase64} alt="avatar" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
+                <PhotoIcon className="w-16 h-16" />
               </div>
             )}
           </div>
