@@ -116,3 +116,23 @@ export async function loadQuizConfig(): Promise<QuizConfig> {
 export function saveQuizConfig(config: QuizConfig): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 }
+
+const DEFAULT_AI_EXAMPLE_TEMPLATE = `生成一个包含目标词汇的自然英文例句。
+
+要求：
+
+* 8~15 个单词
+* 使用真实生活场景
+* 目标词汇是句中最难的词
+* 提供准确中文翻译
+
+只输出：
+
+{"sentence":"英文例句","translation":"中文翻译"}
+
+目标词汇：
+{word}`;
+
+export function getDefaultAiExamplePrompt(): string {
+  return DEFAULT_AI_EXAMPLE_TEMPLATE;
+}

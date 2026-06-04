@@ -1,5 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport, ImportPreview, FieldMappingSelection, Composition, CompositionSummary, CompositionReview } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport, ImportPreview, FieldMappingSelection, Composition, CompositionSummary, CompositionReview, AiExample } from '../types';
 
 const TAURI_AVAILABLE = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -208,6 +208,10 @@ export async function testAiApi(apiUrl: string, apiKey: string, model: string): 
 
 export async function generateQuestionsWithConfig(articleId: string, config: ProviderConfig, prompt?: string): Promise<Question[]> {
   return invoke('generate_questions_with_config', { articleId, config, prompt: prompt ?? null });
+}
+
+export async function generateAiExample(word: string, languageTo: string): Promise<AiExample> {
+  return invoke('generate_ai_example', { word, languageTo });
 }
 
 export async function testAiConfig(config: ProviderConfig): Promise<string> {

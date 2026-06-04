@@ -8,7 +8,7 @@ import AiModelList from '../components/ai/AiModelList';
 import AiAddModel from '../components/ai/AiAddModel';
 import AiModelDetail from '../components/ai/AiModelDetail';
 import CompositionReviewConfig from '../components/CompositionReviewConfig';
-import { getDefaultTemplate } from '../lib/quizPrompt';
+import { getDefaultTemplate, getDefaultAiExamplePrompt } from '../lib/quizPrompt';
 import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, saveCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
 import type { CompositionConfig } from '../lib/compositionPrompt';
 
@@ -47,6 +47,9 @@ export default function Settings() {
   const [promptTemplate, setPromptTemplate] = useState('');
   const [promptEditorExpanded, setPromptEditorExpanded] = useState(false);
   const [compositionConfig, setCompositionConfig] = useState<CompositionConfig>(DEFAULT_COMPOSITION_CONFIG);
+  const [aiExampleEnabled, setAiExampleEnabled] = useState(false);
+  const [aiExamplePrompt, setAiExamplePrompt] = useState('');
+  const [aiExamplePromptExpanded, setAiExamplePromptExpanded] = useState(false);
 
   const [confirmModal, setConfirmModal] = useState<{
     title: string;
@@ -103,6 +106,10 @@ export default function Settings() {
       if (savedMaxInterval) setFsrsMaxInterval(savedMaxInterval);
       const savedParams = await getSetting('fsrs_parameters');
       if (savedParams) setFsrsParams(savedParams);
+      const savedAiExample = await getSetting('ai_example_enabled');
+      if (savedAiExample === 'true') setAiExampleEnabled(true);
+      const savedAiExamplePrompt = await getSetting('ai_example_prompt');
+      if (savedAiExamplePrompt) setAiExamplePrompt(savedAiExamplePrompt);
     })();
   }, []);
 
@@ -492,7 +499,6 @@ export default function Settings() {
                   <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                     {t('settings.composition_review')}
                   </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.composition_review_desc')}</p>
                   <CompositionReviewConfig
                     showDifficulty={false}
                     config={compositionConfig}
@@ -503,6 +509,73 @@ export default function Settings() {
                       setCompositionReviewPrompt(prompt);
                     }}
                   />
+                </section>
+
+                <section className="space-y-4">
+                  <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    {t('settings.ai_example')}
+                  </h2>
+                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-border p-4 space-y-3">
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className="text-sm font-medium">{t('settings.ai_example')}</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={aiExampleEnabled}
+                        onClick={async () => {
+                          const val = !aiExampleEnabled;
+                          setAiExampleEnabled(val);
+                          await setSetting('ai_example_enabled', val.toString());
+                        }}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
+                          aiExampleEnabled ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                      >
+                        <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                          aiExampleEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                        }`} />
+                      </button>
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('settings.ai_example_desc')}</p>
+
+                    <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => setAiExamplePromptExpanded(!aiExamplePromptExpanded)}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        {aiExamplePromptExpanded ? t('settings.ai_example_collapse') : t('settings.ai_example_expand')}
+                        <span className="text-[10px]">{aiExamplePromptExpanded ? '▲' : '▼'}</span>
+                      </button>
+
+                      {aiExamplePromptExpanded && (
+                        <div className="mt-3 space-y-3">
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAiExamplePrompt('');
+                                setSetting('ai_example_prompt', '');
+                              }}
+                              className="text-xs text-primary hover:underline shrink-0"
+                            >
+                              {t('settings.ai_example_prompt_reset')}
+                            </button>
+                          </div>
+                          <textarea
+                            value={aiExamplePrompt || getDefaultAiExamplePrompt()}
+                            onChange={(e) => {
+                              setAiExamplePrompt(e.target.value);
+                              setSetting('ai_example_prompt', e.target.value);
+                            }}
+                            rows={10}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none font-mono"
+                          />
+                          <p className="text-xs text-gray-400">{t('settings.ai_example_prompt_hint')}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </section>
               </>
             )}

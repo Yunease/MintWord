@@ -38,6 +38,11 @@ export interface StudyCard {
   language_to: string;
 }
 
+export interface AiExample {
+  sentence: string;
+  translation: string;
+}
+
 export interface ReviewStats {
   total_cards: number;
   due_today: number;

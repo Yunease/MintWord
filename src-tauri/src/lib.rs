@@ -132,6 +132,7 @@ pub fn run() {
             commands::get_ai_prompt,
             commands::set_ai_prompt,
             commands::generate_questions_with_config,
+            commands::generate_ai_example,
             commands::test_ai_config,
             commands::get_chatgpt_login_url,
             commands::request_device_code,

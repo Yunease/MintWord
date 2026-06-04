@@ -272,6 +272,107 @@ pub async fn chat_with_provider(
     chat_with_provider_raw(config, system_prompt, &wrapped).await
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
+pub struct AiExample {
+    pub sentence: String,
+    pub translation: String,
+}
+
+pub const DEFAULT_AI_EXAMPLE_PROMPT: &str = "生成一个包含目标词汇的自然英文例句。
+
+要求：
+
+* 8~15 个单词
+* 使用真实生活场景
+* 目标词汇是句中最难的词
+* 提供准确中文翻译
+
+只输出：
+
+{\"sentence\":\"英文例句\",\"translation\":\"中文翻译\"}
+
+目标词汇：
+{word}";
+
+/// Extract the first JSON object `{...}` from a string, ignoring any
+/// surrounding text (markdown code fences, prose, etc.).
+fn extract_json_object(text: &str) -> Option<String> {
+    // First try: strip code fences (```json, ```, etc.)
+    let without_fences = text
+        .strip_prefix("```json")
+        .or_else(|| text.strip_prefix("```"))
+        .and_then(|s| s.strip_suffix("```"))
+        .unwrap_or(text)
+        .trim();
+
+    // Find the first '{' and its matching '}'
+    let start = without_fences.find('{')?;
+    let mut depth = 0u32;
+    for (i, ch) in without_fences[start..].char_indices() {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return Some(without_fences[start..=start + i].to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Case-insensitive lookup for a JSON object key.
+fn json_get_ci(obj: &serde_json::Value, key: &str) -> Option<String> {
+    let map = obj.as_object()?;
+    let key_lower = key.to_lowercase();
+    // First try exact match
+    if let Some(v) = map.get(key) {
+        if let Some(s) = v.as_str() {
+            return Some(s.to_string());
+        }
+    }
+    // Fallback to case-insensitive match
+    for (k, v) in map {
+        if k.to_lowercase() == key_lower {
+            if let Some(s) = v.as_str() {
+                return Some(s.to_string());
+            }
+        }
+    }
+    None
+}
+
+pub async fn generate_ai_example(
+    config: &ProviderConfig,
+    _word: &str,
+    language_to: &str,
+    _interests: &str,
+    prompt: &str,
+) -> Result<AiExample, String> {
+    let user_content = format!(
+        "Generate an example sentence for the word above. Translate into {}.",
+        language_to
+    );
+    let response = chat_with_provider_raw(config, prompt, &user_content).await?;
+    let text = response.content.trim().to_string();
+    let json_str = extract_json_object(&text).ok_or_else(|| {
+        format!(
+            "No JSON object found in AI response. Raw: {}",
+            text.chars().take(300).collect::<String>()
+        )
+    })?;
+    let parsed: serde_json::Value = serde_json::from_str(&json_str)
+        .map_err(|e| format!("Failed to parse AI example response: {}. JSON: {}", e, json_str))?;
+    Ok(AiExample {
+        sentence: json_get_ci(&parsed, "sentence")
+            .ok_or_else(|| format!("Missing 'sentence' in AI response: {}", json_str))?,
+        translation: json_get_ci(&parsed, "translation")
+            .ok_or_else(|| format!("Missing 'translation' in AI response: {}", json_str))?,
+    })
+}
+
 pub async fn review_composition(
     config: &ProviderConfig,
     system_prompt: &str,

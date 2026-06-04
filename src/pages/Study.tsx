@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi, stopTts, exportSessionCsv, getSetting } from '../lib/api';
+import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi, stopTts, exportSessionCsv, getSetting, generateAiExample } from '../lib/api';
 import { t } from '../lib/i18n';
 
-import type { StudyCard, SessionResult } from '../types';
+import type { StudyCard, SessionResult, AiExample } from '../types';
 import { save } from '@tauri-apps/plugin-dialog';
 import PreviewGrid from '../components/PreviewGrid';
 
@@ -23,6 +23,11 @@ export default function Study() {
   const [userInput, setUserInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
+  const [aiExampleEnabled, setAiExampleEnabled] = useState(false);
+  const [aiExample, setAiExample] = useState<AiExample | null>(null);
+  const [aiExampleLoading, setAiExampleLoading] = useState(false);
+  const [aiExampleError, setAiExampleError] = useState<string | null>(null);
+  const aiExampleCache = useRef<Map<string, AiExample>>(new Map());
 
   const { data: fetched, isLoading } = useQuery({
     queryKey: ['study', id],
@@ -35,6 +40,8 @@ export default function Study() {
       (async () => {
         const dictation = await getSetting('dictation_enabled');
         const allow = dictation !== 'false';
+        const aiExample = await getSetting('ai_example_enabled');
+        setAiExampleEnabled(aiExample === 'true');
         const total = fetched.length;
 
         let modeArray: ('recall' | 'dictation')[];
@@ -74,8 +81,34 @@ export default function Study() {
     setNotes(current?.notes || '');
     setPlayedTts(false);
     setUserInput('');
+    setAiExample(null);
+    setAiExampleError(null);
+    setAiExampleLoading(false);
     stopTts().catch(() => {});
   }, [current]);
+
+  useEffect(() => {
+    if (!current || !aiExampleEnabled) return;
+    const cached = aiExampleCache.current.get(current.id);
+    if (cached) {
+      setAiExample(cached);
+      return;
+    }
+    setAiExampleLoading(true);
+    generateAiExample(current.front, current.language_to)
+      .then((result) => {
+        aiExampleCache.current.set(current.id, result);
+        setAiExample(result);
+      })
+      .catch((err) => {
+        console.error('AI example generation failed:', err);
+        setAiExampleError(String(err));
+        setAiExample(null);
+      })
+      .finally(() => {
+        setAiExampleLoading(false);
+      });
+  }, [current, aiExampleEnabled]);
 
   useEffect(() => {
     if (!current || playedTts || flipped) return;
@@ -358,6 +391,18 @@ export default function Study() {
                 {current.example_sentence}
               </div>
             )}
+            {aiExampleLoading && (
+              <div className="text-center text-xs text-gray-400 py-1">{t('study.ai_example_loading')}</div>
+            )}
+            {aiExampleError && !aiExampleLoading && (
+              <div className="text-center text-xs text-red-400 py-1">{aiExampleError}</div>
+            )}
+            {aiExample && (
+              <div className="text-center">
+                <div className="text-sm text-gray-700 dark:text-gray-300 italic">{aiExample.sentence}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{aiExample.translation}</div>
+              </div>
+            )}
           </div>
         ) : !flipped ? (
           <div className="text-center space-y-4">
@@ -387,6 +432,18 @@ export default function Study() {
             {current.example_sentence && (
               <div className="text-sm text-gray-400 dark:text-gray-500 italic text-center whitespace-pre-line">
                 {current.example_sentence}
+              </div>
+            )}
+            {aiExampleLoading && (
+              <div className="text-center text-xs text-gray-400 py-1">{t('study.ai_example_loading')}</div>
+            )}
+            {aiExampleError && !aiExampleLoading && (
+              <div className="text-center text-xs text-red-400 py-1">{aiExampleError}</div>
+            )}
+            {aiExample && (
+              <div className="text-center">
+                <div className="text-sm text-gray-700 dark:text-gray-300 italic">{aiExample.sentence}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{aiExample.translation}</div>
               </div>
             )}
             <textarea

@@ -1036,8 +1036,52 @@ pub async fn generate_questions_with_config(
 }
 
 #[tauri::command]
+pub async fn generate_ai_example(
+    db: State<'_, Database>,
+    word: String,
+    language_to: String,
+) -> Result<ai::AiExample, String> {
+    let (config_json, interests_raw, custom_prompt_raw) = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let config_json: String = conn.query_row(
+            "SELECT value FROM settings WHERE key = 'ai_provider_config_list'",
+            [],
+            |row| row.get(0),
+        ).map_err(|_| "No AI provider configured. Please add one in Settings -> AI.")?;
+
+        let interests_raw: String = conn.query_row(
+            "SELECT value FROM settings WHERE key = 'user_interests'",
+            [],
+            |row| row.get::<_, String>(0),
+        ).unwrap_or_else(|_| "".to_string());
+
+        let custom_prompt_raw: String = conn.query_row(
+            "SELECT value FROM settings WHERE key = 'ai_example_prompt'",
+            [],
+            |row| row.get::<_, String>(0),
+        ).unwrap_or_else(|_| ai::DEFAULT_AI_EXAMPLE_PROMPT.to_string());
+
+        (config_json, interests_raw, custom_prompt_raw)
+    };
+
+    let config_list: Vec<ai::ProviderConfig> = serde_json::from_str(&config_json)
+        .map_err(|e| format!("Failed to parse provider config: {}", e))?;
+    if config_list.is_empty() {
+        return Err("No AI provider configured. Please add one in Settings -> AI.".to_string());
+    }
+
+    let prompt = custom_prompt_raw
+        .replace("{word}", &word)
+        .replace("{interests}", &interests_raw)
+        .replace("{language_to}", &language_to)
+        .replace("{difficulty}", "intermediate");
+
+    ai::generate_ai_example(&config_list[0], &word, &language_to, &interests_raw, &prompt).await
+}
+
+#[tauri::command]
 pub async fn test_ai_config(config: ai::ProviderConfig) -> Result<String, String> {
-    let response = ai::chat_with_provider(&config, "You are a helpful assistant.", "Reply with just: OK").await?;
+    let response = ai::chat_with_provider_raw(&config, "You are a helpful assistant.", "Reply with just: OK").await?;
     if response.content.to_uppercase().contains("OK") {
         Ok("连接成功".to_string())
     } else {
