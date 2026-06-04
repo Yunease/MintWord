@@ -7,6 +7,7 @@ import {
   getCompositions, createComposition, deleteComposition, importCompositionTxt,
 } from '../lib/api';
 import { t } from '../lib/i18n';
+import { useStudyTimer } from '../hooks/useStudyTimer';
 
 interface SectionItem {
   id: string;
@@ -42,6 +43,7 @@ const SECTIONS: SectionConfig[] = [
 ];
 
 export default function Library() {
+  useStudyTimer();
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['article']));
   const [pasteState, setPasteState] = useState<{ type: string; show: boolean; title: string; content: string }>({

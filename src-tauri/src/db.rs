@@ -90,6 +90,19 @@ impl Database {
                 .ok();
             conn.execute_batch("PRAGMA user_version = 2").ok();
         }
+        if schema_version < 3 {
+            // schema v3 was claimed by an older build (highlights table, etc.)
+            conn.execute_batch("PRAGMA user_version = 3").ok();
+        }
+        if schema_version < 4 {
+            conn.execute_batch(
+                "CREATE TABLE IF NOT EXISTS study_time_log (
+                    date TEXT PRIMARY KEY,
+                    seconds INTEGER NOT NULL DEFAULT 0
+                );"
+            ).ok();
+            conn.execute_batch("PRAGMA user_version = 4").ok();
+        }
         Ok(())
     }
 }

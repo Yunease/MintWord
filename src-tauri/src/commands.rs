@@ -66,6 +66,12 @@ pub struct HeatmapDay {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct StudyTimeEntry {
+    pub date: String,
+    pub seconds: i64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct SessionResult {
     pub card_id: String,
     pub front: String,
@@ -454,6 +460,81 @@ pub fn get_heatmap_data(db: State<Database>) -> Result<Vec<HeatmapDay>, String> 
     .collect::<Result<Vec<_>, _>>()
     .map_err(|e| e.to_string())?;
     Ok(data)
+}
+
+#[tauri::command]
+pub fn record_study_time(db: State<Database>, date: String, seconds: i64) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO study_time_log (date, seconds) VALUES (?1, ?2)
+         ON CONFLICT(date) DO UPDATE SET seconds = seconds + ?2",
+        rusqlite::params![date, seconds],
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_study_time_range(db: State<Database>, start_date: String, end_date: String) -> Result<i64, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let result: i64 = conn.query_row(
+        "SELECT COALESCE(SUM(seconds), 0) FROM study_time_log
+         WHERE date >= ?1 AND date <= ?2",
+        rusqlite::params![start_date, end_date],
+        |row| row.get(0),
+    ).unwrap_or(0);
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn get_study_time_daily(db: State<Database>, start_date: String, end_date: String) -> Result<Vec<StudyTimeEntry>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(
+        "SELECT date, seconds FROM study_time_log
+         WHERE date >= ?1 AND date <= ?2
+         ORDER BY date ASC"
+    ).map_err(|e| e.to_string())?;
+    let data = stmt.query_map(rusqlite::params![start_date, end_date], |row| {
+        Ok(StudyTimeEntry {
+            date: row.get(0)?,
+            seconds: row.get(1)?,
+        })
+    }).map_err(|e| e.to_string())?
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(|e| e.to_string())?;
+    Ok(data)
+}
+
+#[tauri::command]
+pub fn get_study_streak(db: State<Database>) -> Result<i32, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(
+        "SELECT date FROM study_time_log WHERE seconds > 0 ORDER BY date DESC"
+    ).map_err(|e| e.to_string())?;
+    let dates: Vec<String> = stmt.query_map([], |row| row.get(0))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    use chrono::NaiveDate;
+    let today = NaiveDate::parse_from_str(
+        &chrono::Local::now().format("%Y-%m-%d").to_string(),
+        "%Y-%m-%d"
+    ).unwrap();
+
+    let mut streak = 0;
+    let mut expected = today;
+
+    for d in &dates {
+        if let Ok(date) = NaiveDate::parse_from_str(d, "%Y-%m-%d") {
+            if date == expected {
+                streak += 1;
+                expected = expected.pred_opt().unwrap();
+            } else if date < expected {
+                break;
+            }
+        }
+    }
+    Ok(streak)
 }
 
 #[tauri::command]

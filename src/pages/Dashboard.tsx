@@ -82,10 +82,10 @@ function HeatmapChart({ data }: { data: HeatmapDay[] }) {
   function getColor(count: number): string {
     if (count === 0) return 'bg-gray-100 dark:bg-gray-800';
     const intensity = Math.min(count / maxCount, 1);
-    if (intensity <= 0.25) return 'bg-green-200 dark:bg-green-900';
-    if (intensity <= 0.5) return 'bg-green-400 dark:bg-green-700';
-    if (intensity <= 0.75) return 'bg-green-500 dark:bg-green-600';
-    return 'bg-green-600 dark:bg-green-500';
+    if (intensity <= 0.25) return 'bg-primary-light';
+    if (intensity <= 0.5) return 'bg-primary/40';
+    if (intensity <= 0.75) return 'bg-primary/70';
+    return 'bg-primary';
   }
 
   const weeks: typeof days[] = [];

@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getComposition, reviewCompositionWithConfig, saveCompositionReview, getSetting } from '../lib/api';
 import { t } from '../lib/i18n';
+import { useStudyTimer } from '../hooks/useStudyTimer';
 import CompositionReviewConfig from '../components/CompositionReviewConfig';
 import { DEFAULT_COMPOSITION_CONFIG, loadCompositionConfig, buildCompositionPrompt } from '../lib/compositionPrompt';
 import type { CompositionConfig } from '../lib/compositionPrompt';
 import type { ProviderConfig, CompositionReview } from '../types';
 
 export default function CompositionView() {
+  useStudyTimer();
   const { id } = useParams<{ id: string }>();
   const { data: composition, isLoading } = useQuery({
     queryKey: ['composition', id],

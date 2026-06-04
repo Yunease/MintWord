@@ -143,6 +143,10 @@ pub fn run() {
             commands::clear_all_cache,
             commands::save_avatar_file,
             commands::get_avatar_base64,
+            commands::record_study_time,
+            commands::get_study_time_range,
+            commands::get_study_time_daily,
+            commands::get_study_streak,
 
         ])
         .run(tauri::generate_context!())

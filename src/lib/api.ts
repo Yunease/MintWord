@@ -1,5 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
-import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport, ImportPreview, FieldMappingSelection, Composition, CompositionSummary, CompositionReview, AiExample } from '../types';
+import type { Deck, Card, StudyCard, ReviewStats, HeatmapDay, SessionResult, DeckProgress, Article, ArticleSummary, Question, ProviderConfig, ImportReport, ImportPreview, FieldMappingSelection, Composition, CompositionSummary, CompositionReview, AiExample, StudyTimeEntry } from '../types';
 
 const TAURI_AVAILABLE = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -263,6 +263,24 @@ export async function saveAvatarFile(sourcePath: string): Promise<string> {
 
 export async function getAvatarBase64(filename: string): Promise<string> {
   return invoke('get_avatar_base64', { filename });
+}
+
+// === Study Time Tracking ===
+
+export async function recordStudyTime(date: string, seconds: number): Promise<void> {
+  return invoke('record_study_time', { date, seconds });
+}
+
+export async function getStudyTimeRange(startDate: string, endDate: string): Promise<number> {
+  return invoke('get_study_time_range', { startDate, endDate });
+}
+
+export async function getStudyTimeDaily(startDate: string, endDate: string): Promise<StudyTimeEntry[]> {
+  return invoke('get_study_time_daily', { startDate, endDate });
+}
+
+export async function getStudyStreak(): Promise<number> {
+  return invoke('get_study_streak');
 }
 
 // === Cache Management ===

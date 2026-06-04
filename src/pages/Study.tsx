@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getStudyCards, submitReviewSimple, updateCardNotes, speakText, speakAi, stopTts, exportSessionCsv, getSetting, generateAiExample } from '../lib/api';
 import { t } from '../lib/i18n';
+import { useStudyTimer } from '../hooks/useStudyTimer';
 
 import type { StudyCard, SessionResult, AiExample } from '../types';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -28,6 +29,8 @@ export default function Study() {
   const [aiExampleLoading, setAiExampleLoading] = useState(false);
   const [aiExampleError, setAiExampleError] = useState<string | null>(null);
   const aiExampleCache = useRef<Map<string, AiExample>>(new Map());
+  const setTimerActive = useStudyTimer();
+  const afkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: fetched, isLoading } = useQuery({
     queryKey: ['study', id],
@@ -109,6 +112,27 @@ export default function Study() {
         setAiExampleLoading(false);
       });
   }, [current, aiExampleEnabled]);
+
+  // Anti-AFK: pause study timer after 20s of inactivity on same card
+  useEffect(() => {
+    if (!current) return;
+    setTimerActive(true);
+    if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
+    afkTimerRef.current = setTimeout(() => {
+      setTimerActive(false);
+    }, 20000);
+    return () => {
+      if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
+    };
+  }, [current, setTimerActive]);
+
+  // When user flips, clear AFK timer and resume study timer
+  useEffect(() => {
+    if (flipped) {
+      if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
+      setTimerActive(true);
+    }
+  }, [flipped, setTimerActive]);
 
   useEffect(() => {
     if (!current || playedTts || flipped) return;

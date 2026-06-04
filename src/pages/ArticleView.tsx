@@ -3,12 +3,14 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { getArticle, generateQuestions, generateQuestionsWithConfig, saveQuestions, getArticleQuestions, getSetting, getAiPrompt } from '../lib/api';
 import { t } from '../lib/i18n';
+import { useStudyTimer } from '../hooks/useStudyTimer';
 import QuizConfigPanel from '../components/QuizConfig';
 import { buildPrompt, DEFAULT_QUIZ_CONFIG, loadQuizConfig, saveQuizConfig } from '../lib/quizPrompt';
 import type { Question, ProviderConfig } from '../types';
 import type { QuizConfig } from '../lib/quizPrompt';
 
 export default function ArticleView() {
+  useStudyTimer();
   const { id } = useParams<{ id: string }>();
   const { data: article, isLoading } = useQuery({
     queryKey: ['article', id],

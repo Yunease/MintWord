@@ -55,6 +55,11 @@ export interface HeatmapDay {
   count: number;
 }
 
+export interface StudyTimeEntry {
+  date: string;
+  seconds: number;
+}
+
 export interface SessionResult {
   card_id: string;
   front: string;
